@@ -1,0 +1,16 @@
+setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
+rm(list=ls())
+graphics.off()
+
+library(rgdal)
+library(RStoolbox)
+library(raster)
+library(randomForest)
+library(ggplot2)
+library(rgeos)
+library(maptools)
+library(cluster)
+library(rgdal)
+library(sentinel2)
+
+##Aditional line just to see
