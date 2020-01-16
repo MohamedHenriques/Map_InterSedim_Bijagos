@@ -12,7 +12,8 @@ library(maptools)
 library(cluster)
 library(rgdal)
 library(sentinel2)
-library(raster)
+library(rasterVis)
+
 
 
 #Prepara imagens satelite
@@ -74,18 +75,56 @@ if (extent(S2_20190316) == extent(batim)){
   
 }
 
-S2_20190316_crop<-crop(S2_20190316,batim)
-plotRGB(S2_20190316_crop,3,2,1,stretch="lin")
-extent(S2_20190316_crop)==extent(batim))
-
-
+S2_20190316_c
+ggRGB(S2_20190316_c,3,2,1,stretch="lin")
 
 batim_r
 ggR(batim_r)
-ggRGB(S2_20190316,3,2,1,stretch="lin")
-plotRGB(S2_20190316_c,3,2,1,stretch="lin")
 
+## Mask land and water
 S2_20190316_cm<-mask(S2_20190316_c,batim_r)
 
+S2_20190316_cm
+ggR(S2_20190316_cm)
+ggRGB(S2_20190316_cm,3,2,1,stretch="lin")
+
+
+# Adonga study area
+
+## Load poligon made in QGIS
 Adon_b<-readOGR("./Shapefiles/Adonga_bancos/poligono1.shp")
-  
+
+GNB<-readOGR("./Shapefiles/GNB/gnb_poly.shp")
+
+plot(GNB)
+plot(Adon_b, add=T, col="red")
+
+## Crop study area with that poligon
+S2_20190316_ad<-crop(S2_20190316_cm,Adon_b)
+ggRGB(S2_20190316_ad,3,2,1,stretch="lin")
+
+# Load sentinel 1 image 20190310 in decibels
+
+S1_VV_db<-stack("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Sat_img/s1/S1A_IW_GRDH_1SDV_20190310T1917_Orb_TN_Bdr_Cal_TC_Catalao_Sigma0_VV_db.tif")
+S1_VV_db
+
+names(S1_VV_db)<-c("B1","B2","B3","B4")
+ggR(S1_VV_db[[1]])
+hist(S1_VV_db[[1]], breaks=100)
+rasterVis::levelplot(S1_VV_db)
+rasterVis::densityplot(S1_VV_db)
+splom(S1_VV_db)
+
+
+S1_VH_db<-stack("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Sat_img/s1/S1A_IW_GRDH_1SDV_20190310T1917_Orb_TN_Bdr_Cal_TC_Catalao_Sigma0_VH_db.tif")
+S1_VH_db  
+
+names(S1_VH_db)<-c("B1","B2","B3","B4")
+rasterVis::levelplot(S1_VH_db)
+rasterVis::densityplot(S1_VH_db)
+
+extent(S1_VV_db) == extent(S1_VH_db)
+
+S1_VV_VH<-S1_VV_db$B1/S1_VH_db$B1
+S1_VV_VH
+rasterVis::levelplot(S1_VV_VH)
