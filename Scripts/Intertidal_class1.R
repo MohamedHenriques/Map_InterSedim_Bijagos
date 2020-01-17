@@ -196,3 +196,26 @@ plot(radarPCA$map$PC1, main="PCA Adonga", col=magma(100))
 
 plotRGB(radarPCA$map,r=1,g=2,b=1,axes=T,colNA="black", stretch="lin",main="PCA radar", col=my.palette)
 
+# Criar base de dados com valores do raster
+
+## Importar poligonos de ground truthing
+### shapes de treino
+treino<-readOGR("./Shapefiles/Areas_treino/t1.shp")
+plot(treino,add=T,col="red")
+
+### shapes de validacao
+validacao<-readOGR("./Shapefiles/Areas_validacao/v1.shp")
+plot(validacao,add=T,col="green")
+
+
+## Unite validation and training shapes
+GT<-union(treino,validacao)
+plot(GT, add=T,col="blue")
+GT_df<-as(GT,"data.frame")
+
+
+data_all<-extract(all,GT)
+data_all1<-as(data_all,"data.frame")
+data_all2<-as.matrix(data_all)
+
+
