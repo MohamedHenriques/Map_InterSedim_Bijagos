@@ -103,28 +103,96 @@ plot(Adon_b, add=T, col="red")
 S2_20190316_ad<-crop(S2_20190316_cm,Adon_b)
 ggRGB(S2_20190316_ad,3,2,1,stretch="lin")
 
+
 # Load sentinel 1 image 20190310 in decibels
 
+## Load VV s1 image
 S1_VV_db<-stack("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Sat_img/s1/S1A_IW_GRDH_1SDV_20190310T1917_Orb_TN_Bdr_Cal_TC_Catalao_Sigma0_VV_db.tif")
 S1_VV_db
 
-names(S1_VV_db)<-c("B1","B2","B3","B4")
+names(S1_VV_db)<-c("B1","B2","B3","B4")## change names of layers
 ggR(S1_VV_db[[1]])
 hist(S1_VV_db[[1]], breaks=100)
 rasterVis::levelplot(S1_VV_db)
 rasterVis::densityplot(S1_VV_db)
 splom(S1_VV_db)
 
+## Keep just one of the layers: layers 1,2 and 3 are the same, layer 4 is wierd
+VV<-S1_VV_db$B1
+ggR(batim_r)
+extent(VV)==extent(batim_r)
 
+## crop batim with adonga polygon to mask s1 sat image
+batim_ad<-crop(batim,Adon_b)
+plot(batim_ad)
+
+## resample batimetry to downsize to st img size 
+batim_VV<-resample(batim_ad,VV, method="bilinear")
+extent(VV)==extent(batim_VV)
+VV_m<-mask(VV,batim_VV)
+ggR(VV_m)
+levelplot(VV_m)
+
+## Load VH band
 S1_VH_db<-stack("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Sat_img/s1/S1A_IW_GRDH_1SDV_20190310T1917_Orb_TN_Bdr_Cal_TC_Catalao_Sigma0_VH_db.tif")
 S1_VH_db  
 
-names(S1_VH_db)<-c("B1","B2","B3","B4")
-rasterVis::levelplot(S1_VH_db)
-rasterVis::densityplot(S1_VH_db)
+names(S1_VH_db)<-c("B1","B2","B3","B4") ## change names of layers
 
-extent(S1_VV_db) == extent(S1_VH_db)
+VH<-S1_VH_db$B1
+ggR(VH)
 
-S1_VV_VH<-S1_VV_db$B1/S1_VH_db$B1
-S1_VV_VH
-rasterVis::levelplot(S1_VV_VH)
+## resample batimetry to downsize to st img size 
+batim_VH<-resample(batim_ad,VH, method="bilinear")
+extent(VH)==extent(batim_VH)
+ggR(batim_VH)
+ggR(VH)
+
+VH_m<-mask(VH,batim_VH)
+ggR(VH_m)
+levelplot(VH_m)
+
+## Create a layer with the ratio between VV and VH
+
+extent(VV_m) == extent(VH_m) #Objects have the same extent
+
+VV_VH<-VH_m/VV_m
+VV_VH
+levelplot(VV_VH)
+
+
+
+radar<-stack(VV_m,VH_m)
+ggRGB(radar,1,2,1,stretch = "lin")
+radar_r<-resample(radar,S2_20190316_ad)
+all<-stack(radar_r,S2_20190316_ad)
+
+beginCluster()
+allPCA<-rasterPCA(all,nComp=nlayers(all),maskCheck=T)
+endCluster()
+summary(allPCA$model)
+loadings(allPCA$model)
+plot(allPCA$map$PC1, main="PCA Adonga", col=magma(100))
+my.palette <- colorspace::rainbow_hcl(100)
+plotRGB(allPCA$map,r=1,g=2,b=3,axes=T,colNA="black", stretch="lin",main="PCA all", col=my.palette)
+
+
+beginCluster()
+S2PCA<-rasterPCA(S2_20190316_ad,nComp=nlayers(S2_20190316_ad),maskCheck=T)
+endCluster()
+summary(S2PCA$model)
+loadings(S2PCA$model)
+plot(S2PCA$map$PC1, main="PCA Adonga", col=magma(100))
+
+plotRGB(S2PCA$map,r=1,g=2,b=3,axes=T,colNA="black", stretch="lin",main="PCA S2", col=my.palette)
+
+
+beginCluster()
+radarPCA<-rasterPCA(radar_r,nComp=nlayers(radar_r),maskCheck=T)
+endCluster()
+summary(radarPCA$model)
+loadings(radarPCA$model)
+plot(radarPCA$map$PC1, main="PCA Adonga", col=magma(100))
+
+plotRGB(radarPCA$map,r=1,g=2,b=1,axes=T,colNA="black", stretch="lin",main="PCA radar", col=my.palette)
+
