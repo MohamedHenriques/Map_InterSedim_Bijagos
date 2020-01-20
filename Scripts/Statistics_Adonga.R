@@ -21,6 +21,8 @@ df$NDWI_2<-(df$B03_10-df$B08_10)/(df$B03_10+df$B08_10)
 df$mNDWI<-(df$B03_10-df$B11_10)/(df$B03_10+df$B11_10)
 df$SAR_VH_VV<-(df$SAR_VH/df$SAR_VV)
 
+
+#Graphs
 ggplot(df,aes(x=df$perc_finos,y=SAR_VV))+
   geom_point(size=2)+
   geom_smooth(method=lm,se=F)+
@@ -29,9 +31,18 @@ ggplot(df,aes(x=df$perc_finos,y=SAR_VV))+
 ggplot(df,aes(x=factor(uca),y=perc_finos))+
   geom_boxplot(outlier.color = "red")
 
-ggplot(df,aes(x=SAR_VH,y=cover_water,col=class_1))+
+ggplot(df,aes(x=SAR_VV,y=cover_water,col=class_1))+
   geom_point(size=2)+
   geom_smooth(method=lm,se=F)
+
+ggplot(df,aes(x=NDWI_1,y=cover_water,col=class_1))+
+  geom_point(size=2)+
+  geom_smooth(method=lm,se=F)
+
+ggplot(df,aes(x=class_1,y=NDWI_1))+
+  geom_boxplot(outlier.color = "red")
+
+
 
 # statistics: 
 
@@ -67,6 +78,11 @@ anova(y1)
 y2<-lm(SAR_VH_VV~cover_water,data=df)
 summary(y2)
 anova(y2)
+
+y3<-lm(NDWI_1~cover_water+class_1,data=df)
+summary(y3)
+anova(y3)
+
 
 
 
