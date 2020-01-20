@@ -161,38 +161,43 @@ VV_VH
 levelplot(VV_VH)
 
 
-
+## stack the 2 polarisation images
 radar<-stack(VV_m,VH_m)
 ggRGB(radar,1,2,1,stretch = "lin")
-radar_r<-resample(radar,S2_20190316_ad)
-all<-stack(radar_r,S2_20190316_ad)
+radar_r<-resample(radar,S2_20190316_ad) ###resample radar images to size down/up to S2 images
+all<-stack(radar_r,S2_20190316_ad) ### stack all the satellite images
 
+# preform a PCA on sentinel images
+
+## All sat bands
 beginCluster()
 allPCA<-rasterPCA(all,nComp=nlayers(all),maskCheck=T)
 endCluster()
 summary(allPCA$model)
 loadings(allPCA$model)
-plot(allPCA$map$PC1, main="PCA Adonga", col=magma(100))
+plot(allPCA$map$PC1, main="PCA Adonga", col=magma(20))
 my.palette <- colorspace::rainbow_hcl(100)
-plotRGB(allPCA$map,r=1,g=2,b=3,axes=T,colNA="black", stretch="lin",main="PCA all", col=my.palette)
 
+### Visualizing PC1,2 and 3
+plotRGB(allPCA$map,r=1,g=2,b=3,axes=F,colNA="black", stretch="lin",main="PCA all", col=magma(20))
 
+## ONly S2 PCA
 beginCluster()
 S2PCA<-rasterPCA(S2_20190316_ad,nComp=nlayers(S2_20190316_ad),maskCheck=T)
 endCluster()
 summary(S2PCA$model)
 loadings(S2PCA$model)
-plot(S2PCA$map$PC1, main="PCA Adonga", col=magma(100))
+plot(S2PCA$map$PC1, main="S2 PCA Adonga", col=magma(20))
 
 plotRGB(S2PCA$map,r=1,g=2,b=3,axes=T,colNA="black", stretch="lin",main="PCA S2", col=my.palette)
 
-
+## Only S1 PCA
 beginCluster()
 radarPCA<-rasterPCA(radar_r,nComp=nlayers(radar_r),maskCheck=T)
 endCluster()
 summary(radarPCA$model)
 loadings(radarPCA$model)
-plot(radarPCA$map$PC1, main="PCA Adonga", col=magma(100))
+plot(radarPCA$map$PC2, main="S1 PCA Adonga", col=magma(20))
 
 plotRGB(radarPCA$map,r=1,g=2,b=1,axes=T,colNA="black", stretch="lin",main="PCA radar", col=my.palette)
 
@@ -202,20 +207,29 @@ plotRGB(radarPCA$map,r=1,g=2,b=1,axes=T,colNA="black", stretch="lin",main="PCA r
 ### shapes de treino
 treino<-readOGR("./Shapefiles/Areas_treino/t1.shp")
 plot(treino,add=T,col="red")
+treino_df<-as(treino,"data.frame")
+write.table(treino_df,"./Data_out/treino_df.csv",row.names = F,sep=";")
 
 ### shapes de validacao
 validacao<-readOGR("./Shapefiles/Areas_validacao/v1.shp")
 plot(validacao,add=T,col="green")
 
-
 ## Unite validation and training shapes
 GT<-union(treino,validacao)
 plot(GT, add=T,col="blue")
+
+## create a new column with de ID of each polygon
+GT@data$RID<-as.factor(c(as.character(GT@data$name.1[!is.na(GT@data$name.1)]),as.character(GT@data$name.2[!is.na(GT@data$name.2)])))
 GT_df<-as(GT,"data.frame")
 
+## Extract raster pixel values 
+v<-extract(all,GT,df=F,method="bilinear")
 
-data_all<-extract(all,GT)
-data_all1<-as(data_all,"data.frame")
-data_all2<-as.matrix(data_all)
+## Add results to polygons data, since it will be ordered with the same order of the polygons
+GT@data<-data.frame(GT@data,do.call(rbind, lapply(v, colMeans)))
+DF<-as(GT,"data.frame")
+
+write.table(DF,"./Data_out/DF.csv",sep=";",row.names = F)
+
 
 
