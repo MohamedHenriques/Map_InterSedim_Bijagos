@@ -42,6 +42,9 @@ ggplot(df,aes(x=NDWI_1,y=cover_water,col=class_1))+
 ggplot(df,aes(x=class_1,y=NDWI_1))+
   geom_boxplot(outlier.color = "red")
 
+## check interactions between uca and grain size: no apparent interactions, slopes similar 
+coplot(SAR_VV~perc_finos|factor(uca),panel=panel.smooth,
+       number=2,overlap=0,rows=1,data=df)
 
 
 # statistics: 
@@ -49,9 +52,13 @@ ggplot(df,aes(x=class_1,y=NDWI_1))+
 ## Granulometria
 
 ### Perc finos tem efeito significativo no sinal de SAR VV, assim como a presença de uca. Não há interaçao entre uca e finos...
-x<-lm(SAR_VV~factor(uca)*perc_finos,data=df)
+x<-lm(SAR_VV~factor(uca)*perc_finos,data=df[-193,])
 summary(x)
 anova(x)
+plot(x)
+outlierTest(x)
+avPlots(x)
+
 
 ### Também efeito significativo de perc finos tb no SAR VH, mas não de uca. Nao há interacção
 x1<-lm(SAR_VH~factor(uca)*perc_finos,data=df)
