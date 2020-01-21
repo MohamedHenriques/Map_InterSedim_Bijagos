@@ -12,6 +12,7 @@ library(maptools)
 library(cluster)
 library(rgdal)
 library(sentinel2)
+<<<<<<< HEAD
 library(rasterVis)
 library(RColorBrewer)
 library(viridis)
@@ -284,3 +285,7 @@ plot(kmeans_raster_Adongabancos_1, col=magma(5), main="kmeans_radar_Adongabancos
 
 
 
+=======
+
+##Aditional line just to see
+>>>>>>> b7c8e457a9dd3fbfc2197ea14047b0e471e4b4b6
