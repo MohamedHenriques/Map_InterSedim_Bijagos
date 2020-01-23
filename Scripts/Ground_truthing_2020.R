@@ -2,10 +2,8 @@ setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github
 rm(list=ls())
 graphics.off()
 
-packs<-c("RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster")
+packs<-c("RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis")
 lapply(packs,require,character.only=T)
-
-
 
 ## Load S2 images 
 S2_20200105_a<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S2/Resampled/subset_S2B_MSIL2A_20200105T112349_N0213_R037_T28PCT_20200105T123330_resampled.tif")
@@ -22,6 +20,25 @@ plotRGB(S2_20200105_a,3,2,1,stretch = "lin")
 plotRGB(S2_20200105_b,3,2,1,stretch = "lin")
 
 ##Load S1 SAR images
+
+# import radar images preprocessadas em SNAP. Realizamos orbit file correction, 
+#thermal and border noise removal/reduction, radiometric calibration, Speckle noise filtering,
+#Terrain correction e conversion to decibels
+
+## Load VV s1 image
+S1_VH_VV<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200116_1917/S1A_IW_GRDH_1SDV_20200116T191708_20200116T191733_030830_038983_2062_Orb_NR_Cal_Spk_TC_db.tif")
+S1_VH_VV
+plot(S1_VH_VV$S1A_IW_GRDH_1SDV_20200116T191708_20200116T191733_030830_038983_2062_Orb_NR_Cal_Spk_TC_db.1)
+
+## change names of layers (I know the order because of the way I preprocessed it in SNAP)
+names(S1_VH_VV)<-c("S1_VH","S1_VV")
+
+## Separate the layers
+VH<-S1_VH_VV$S1_VH
+VV<-S1_VH_VV$S1_VV
+
+ggR(VH)
+ggR(VV)
 
 ###Poligonos areas de trabalho
 gnb<-readOGR(dsn="Shapefiles/GNB",layer="gnb_poly")
@@ -48,6 +65,12 @@ plotRGB(S2a_Urok,3,2,1,stretch = "lin")
 
 #writeRaster(S2a_Urok,"Data_out/S2a_Urok.tif",format="GTiff",overwrite=F)
 
+## radar image
+###Urok
+VH_Urok<-crop(VH,Urok)
+VV_Urok<-crop(VV,Urok)
+plot(VH_Urok)
+plot(VV_Urok)
 
 ###Bubaque
 S2a_Bub<-crop(S2_20200105_a,Bub)
@@ -55,6 +78,12 @@ S2a_Bub
 plotRGB(S2a_Bub,3,2,1,stretch = "lin")
 
 #writeRaster(S2a_Bub,"Data_out/S2a_Bub.tif",format="GTiff",overwrite=F)
+
+### Bubaque
+VH_Bub<-crop(VH,Bub)
+VV_Bub<-crop(VV,Bub)
+plot(VH_Bub)
+plot(VV_Bub)
 
 ## S2 b
 S2b_Urok<-crop(S2_20200105_b,Urok)
@@ -71,6 +100,13 @@ plotRGB(S2b_CanhGa,3,2,1,stretch = "lin")
 
 #writeRaster(S2b_CanhGa,"Data_out/S2b_CanhGa.tif",format="GTiff",overwrite=F)
 
+###### Can't do this yet because of the extent of the s1 image. will dela with that later on SNAP
+### CanhGa
+#VH_CanhGa<-crop(VH,CanhGa)
+#VV_CanhGa<-crop(VV,CanhGa)
+#plot(VH_CanhGa)
+#plot(VV_CanhGa)
+
 ###Bolama
 S2b_Bolama<-crop(S2_20200105_b,Bolama)
 S2b_Bolama
@@ -78,12 +114,19 @@ plotRGB(S2b_Bolama,3,2,1,stretch = "lin")
 
 #writeRaster(S2b_Bolama,"Data_out/S2b_Bolama.tif",format="GTiff",overwrite=F)
 
+###Bolama
+#VH_Bolama<-crop(VH,Bolama)
+#VV_Bolama<-crop(VV,Bolama)
+#plot(VH_Bolama)
+#plot(VV_Bolama)
+
+
 # Load bathymetry map for mask
 bat<-raster("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Jcatalao/bijagos_batim.tif")
 plot(bat)
 
 
-# Mask out every study area
+# Mask out every study area in radar image
 
 ## Mask Urok with bathymetry
 mask_urok<-crop(bat,Urok)
@@ -502,3 +545,8 @@ plot(class_stack_CanhGa,colNA="grey45",col=magma(50))
 class_stack_Bolama<-stack(kmeans_raster_S2b_Bolama,clara_raster_S2b_Bolama,randfor_raster_S2b_Bolama)
 names(class_stack_Bolama)<-c("kmeans Bolama","clara Bolama","randomForest Bolama")
 plot(class_stack_Bolama,colNA="black",col=magma(50))
+
+
+
+
+
