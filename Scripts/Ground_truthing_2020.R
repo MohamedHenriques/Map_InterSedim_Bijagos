@@ -412,7 +412,7 @@ clara_raster_S2b_CanhGa[i_S2b_CanhGa]<-clus_S2b_CanhGa$clustering
 endCluster()
 
 plot(clara_raster_S2b_CanhGa,col=my.palette,colNA="black",main="clara 7 CanhGa")
-writeRaster(clara_raster_S2b_CanhGa,"Data_out/clara_7_CanhGa_20200105.tif",format="GTiff",overwrite=T)
+writeRaster(clara_raster_S2b_CanhGa,"Data_out/clara_7_CanhGa_20200105.tif",format="GTiff",overwrite=F)
 
 ## clara classification Bolama 7 classes
 beginCluster()
@@ -422,7 +422,7 @@ clara_raster_S2b_Bolama[i_S2b_Bolama]<-clus_S2b_Bolama$clustering
 endCluster()
 
 plot(clara_raster_S2b_Bolama,col=my.palette,colNA="black",main="clara 7 Bolama")
-writeRaster(clara_raster_S2b_Bolama,"Data_out/clara_7_Bolama_20200105.tif",format="GTiff",overwrite=T)
+writeRaster(clara_raster_S2b_Bolama,"Data_out/clara_7_Bolama_20200105.tif",format="GTiff",overwrite=F)
 
 
 ## Random Forest Urok 7 classes
@@ -436,7 +436,7 @@ randfor_S2a_Urok<-randomForest(vx_S2a_Urok,as.factor(E_randfor_S2a_Urok$cluster)
 randfor_raster_S2a_Urok<-predict(Intertidal_urok1,randfor_S2a_Urok)
 
 plot(randfor_raster_S2a_Urok,col=my.palette,colNA="black",main="randfor_7_Urok_20200105")
-writeRaster(randfor_raster_Urok_20181017, "Data_out/randfor_7_Urok_20200105.tif",format="GTiff",overwrite=F)
+writeRaster(randfor_raster_S2a_Urok, "Data_out/randfor_7_Urok_20200105.tif",format="GTiff",overwrite=F)
 
 
 ## Random Forest Bub 7 classes
@@ -450,21 +450,21 @@ randfor_S2a_Bub<-randomForest(vx_S2a_Bub,as.factor(E_randfor_S2a_Bub$cluster),nt
 randfor_raster_S2a_Bub<-predict(Intertidal_Bub,randfor_S2a_Bub)
 
 plot(randfor_raster_S2a_Bub,col=my.palette,colNA="black",main="randfor_7_Bub_20200105")
-writeRaster(randfor_raster_Bub_20181017, "Data_out/randfor_7_Bub_20200105.tif",format="GTiff",overwrite=F)
+writeRaster(randfor_raster_S2a_Bub, "Data_out/randfor_7_Bub_20200105.tif",format="GTiff",overwrite=F)
 
 
 ## Random Forest CanhaGa 7 classes
 
 ### unsupervised randomForest classification using kmeans
-vx_S2b_CanhaGa<-values1_S2b_CanhaGa[sample(nrow(values1_S2b_CanhaGa),500),]
-randfor_S2b_CanhaGa=randomForest(vx_S2b_CanhaGa)
-randfor_prox_S2b_CanhaGa<-randomForest(vx_S2b_CanhaGa,ntree = 1000,proximity=T)$proximity
-E_randfor_S2b_CanhaGa<-kmeans(randfor_prox_S2b_CanhaGa,7,iter.max=500,nstart=25)
-randfor_S2b_CanhaGa<-randomForest(vx_S2b_CanhaGa,as.factor(E_randfor_S2b_CanhaGa$cluster),ntree=500)
-randfor_raster_S2b_CanhaGa<-predict(Intertidal_CanhaGa,randfor_S2b_CanhaGa)
+vx_S2b_CanhGa<-values1_S2b_CanhGa[sample(nrow(values1_S2b_CanhGa),500),]
+randfor_S2b_CanhGa=randomForest(vx_S2b_CanhGa)
+randfor_prox_S2b_CanhGa<-randomForest(vx_S2b_CanhGa,ntree = 1000,proximity=T)$proximity
+E_randfor_S2b_CanhGa<-kmeans(randfor_prox_S2b_CanhGa,7,iter.max=500,nstart=25)
+randfor_S2b_CanhGa<-randomForest(vx_S2b_CanhGa,as.factor(E_randfor_S2b_CanhGa$cluster),ntree=500)
+randfor_raster_S2b_CanhGa<-predict(Intertidal_CanhGa,randfor_S2b_CanhGa)
 
-plot(randfor_raster_S2b_CanhaGa,col=my.palette,colNA="black",main="randfor_7_CanhaGa_20200105")
-writeRaster(randfor_raster_CanhaGa_20181017, "Data_out/randfor_7_CanhaGa_20200105.tif",format="GTiff",overwrite=F)
+plot(randfor_raster_S2b_CanhGa,col=my.palette,colNA="black",main="randfor_7_CanhGa_20200105")
+writeRaster(randfor_raster_S2b_CanhGa, "Data_out/randfor_7_CanhGa_20200105.tif",format="GTiff",overwrite=F)
 
 
 ## Random Forest Bolama 7 classes
@@ -478,8 +478,27 @@ randfor_S2b_Bolama<-randomForest(vx_S2b_Bolama,as.factor(E_randfor_S2b_Bolama$cl
 randfor_raster_S2b_Bolama<-predict(Intertidal_Bolama,randfor_S2b_Bolama)
 
 plot(randfor_raster_S2b_Bolama,col=my.palette,colNA="black",main="randfor_7_Bolama_20200105")
-writeRaster(randfor_raster_Bolama_20181017, "Data_out/randfor_7_Bolama_20200105.tif",format="GTiff",overwrite=F)
+writeRaster(randfor_raster_S2b_Bolama, "Data_out/randfor_7_Bolama_20200105.tif",format="GTiff",overwrite=F)
 
 
+## Comparing the 4 algorithms
 
+## Urok
+class_stack_Urok<-stack(kmeans_raster_S2a_Urok,clara_raster_S2a_Urok,randfor_raster_S2a_Urok)
+names(class_stack_Urok)<-c("kmeans Urok","clara Urok","randomForest Urok")
+plot(class_stack_Urok,colNA="black",col=magma(50))
 
+## Bub
+class_stack_Bub<-stack(kmeans_raster_S2a_Bub,clara_raster_S2a_Bub,randfor_raster_S2a_Bub)
+names(class_stack_Bub)<-c("kmeans Bub","clara Bub","randomForest Bub")
+plot(class_stack_Bub,colNA="black",col=magma(50))
+
+## CanhGa
+class_stack_CanhGa<-stack(kmeans_raster_S2b_CanhGa,clara_raster_S2b_CanhGa,randfor_raster_S2b_CanhGa)
+names(class_stack_CanhGa)<-c("kmeans CanhGa","clara CanhGa","randomForest CanhGa")
+plot(class_stack_CanhGa,colNA="grey45",col=magma(50))
+
+## Bolama
+class_stack_Bolama<-stack(kmeans_raster_S2b_Bolama,clara_raster_S2b_Bolama,randfor_raster_S2b_Bolama)
+names(class_stack_Bolama)<-c("kmeans Bolama","clara Bolama","randomForest Bolama")
+plot(class_stack_Bolama,colNA="black",col=magma(50))
