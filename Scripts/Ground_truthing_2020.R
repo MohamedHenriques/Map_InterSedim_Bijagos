@@ -643,7 +643,7 @@ beginCluster()
 
 #### kmeans classification Urok 10 classes
 set.seed(3)
-E_all_Urok<-kmeans(values1_all_Urok,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+E_all_Urok<-kmeans(values1_all_Urok,7,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_all_Urok
 E_all_Urok$ifault
 kmeans_raster_all_Urok<-raster(all_Urok)
@@ -651,8 +651,8 @@ kmeans_raster_all_Urok[i_all_Urok]<-E_all_Urok$cluster
 
 endCluster()
 
-plot(kmeans_raster_all_Urok,col=magma(10),main="kmeans 10 all Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_10_all_Urok_20200116.tif",format="GTiff",overwrite=T)
+plot(kmeans_raster_all_Urok,col=magma(7),main="kmeans 7 all Urok 20200105",colNA="lightskyblue")
+writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_7_all_Urok_20200116.tif",format="GTiff",overwrite=T)
 
 
 ##Bubaque
