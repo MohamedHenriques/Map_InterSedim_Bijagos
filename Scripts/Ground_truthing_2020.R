@@ -543,32 +543,32 @@ writeRaster(PCA_Bolama_all$map,"Data_out/PCA/PCA_Bolama_all_20200105-0116-2018.t
 
 ## kmeans classification
 ### S2a Urok
-values1_S2a_Urok<-scale(getValues(stack("./Data_out/Intertidal/Intertidal_urok.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_S2a_Urok<-getValues(stack("./Data_out/Intertidal/Intertidal_urok.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_S2a_Urok<-which(!is.na(values1_S2a_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_Urok<-na.omit(values1_S2a_Urok) ## omit NA values from data
+values1_S2a_Urok<-scale(na.omit(values1_S2a_Urok)) ## omit NA values from data
 head(values1_S2a_Urok)
 tail(values1_S2a_Urok)
 
-beginCluster()
+#beginCluster()
 
 #### kmeans classification Urok 10 classes
 set.seed(1)
-E_S2a_Urok<-kmeans(values1_S2a_Urok,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+E_S2a_Urok<-kmeans(values1_S2a_Urok,10,iter.max=1000,nstart=25,algorithm="MacQueen")
 E_S2a_Urok
 E_S2a_Urok$ifault
 kmeans_raster_S2a_Urok<-raster(stack("./Data_out/Intertidal/Intertidal_urok.tif"))
 kmeans_raster_S2a_Urok[i_S2a_Urok]<-E_S2a_Urok$cluster
 
-endCluster()
+#endCluster()
 
 plot(kmeans_raster_S2a_Urok,col=magma(10),main="kmeans 10 S2a Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_S2a_Urok,"Data_out/Kmeans/kmeans_10_S2a_Urok_20200105.tif",format="GTiff",overwrite=F)
+writeRaster(kmeans_raster_S2a_Urok,"Data_out/Kmeans/kmeans_10_S2a_Urok_20200105.tif",format="GTiff",overwrite=T)
 
 
 ### SAR Urok
-values1_SAR_Urok<-scale(getValues(SAR_Urok)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_SAR_Urok<-getValues(stack("./Data_out/Intertidal/SAR_Urok.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_SAR_Urok<-which(!is.na(values1_SAR_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_Urok<-na.omit(values1_SAR_Urok) ## omit NA values from data
+values1_SAR_Urok<-scale(na.omit(values1_SAR_Urok)) ## omit NA values from data
 head(values1_SAR_Urok)
 tail(values1_SAR_Urok)
 
@@ -576,10 +576,10 @@ beginCluster()
 
 #### kmeans classification Urok 10 classes
 set.seed(2)
-E_SAR_Urok<-kmeans(values1_SAR_Urok,5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+E_SAR_Urok<-kmeans(values1_SAR_Urok,5,iter.max=1000,nstart=25,algorithm="MacQueen")
 E_SAR_Urok
 E_SAR_Urok$ifault
-kmeans_raster_SAR_Urok<-raster(SAR_Urok)
+kmeans_raster_SAR_Urok<-raster(stack("./Data_out/Intertidal/SAR_Urok.tif"))
 kmeans_raster_SAR_Urok[i_SAR_Urok]<-E_SAR_Urok$cluster
 
 endCluster()
@@ -588,18 +588,17 @@ plot(kmeans_raster_SAR_Urok,col=magma(5),main="kmeans 5 SAR Urok 20200116",colNA
 writeRaster(kmeans_raster_SAR_Urok,"Data_out/Kmeans/kmeans_5_SAR_Urok_20200116.tif",format="GTiff",overwrite=F)
 
 
-### all Urok
+# Create NDWI and stacks fot wet classification
+all_Urok<-stack("./Data_out/Stack/stack_all_Urok.tif")
+names(all_Urok)<-c(paste("B",c(2:8,"8a",9,11:12),sep=""),"VH","VV","bat")
+#plot(all_Urok)
 
-#all_Urok<-stack("./Data_out/Stack/stack_all_Urok.tif")
-#names(all_Urok)<-c(paste("B",c(2:8,"8a",9,11:12),sep=""),"VH","VV","bat")
-plot(all_Urok)
 
-
-NDWI_1<-(all_Urok$B08-all_Urok$B12)/(all_Urok$B08+all_Urok$B12)
+NDWI_1<-(all_Urok$B8-all_Urok$B12)/(all_Urok$B8+all_Urok$B12)
 plot(NDWI_1)
-NDWI_2<-(all_Urok$B03-all_Urok$B08)/(all_Urok$B03+all_Urok$B08)
+NDWI_2<-(all_Urok$B3-all_Urok$B8)/(all_Urok$B3+all_Urok$B8)
 plot(NDWI_2)
-mNDWI<-(all_Urok$B03-all_Urok$B11)/(all_Urok$B03+all_Urok$B11)
+mNDWI<-(all_Urok$B3-all_Urok$B11)/(all_Urok$B3+all_Urok$B11)
 plot(mNDWI)
 
 U<-stack(all_Urok@layers[c(2,7,10,11:13)])
@@ -609,16 +608,16 @@ names(wet_Urok)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
 
 ## kmeans classification
 ### wet Urok
-values1_wet_Urok<-scale(getValues(wet_Urok)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_wet_Urok<-getValues(wet_Urok) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_wet_Urok<-which(!is.na(values1_wet_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_wet_Urok<-na.omit(values1_wet_Urok) ## omit NA values from data
+values1_wet_Urok<-scale(na.omit(values1_wet_Urok)) ## omit NA values from data
 head(values1_wet_Urok)
 tail(values1_wet_Urok)
 
 beginCluster()
 
 #### kmeans classification Urok 10 classes
-set.seed(0)
+set.seed(3)
 E_wet_Urok<-kmeans(values1_wet_Urok,3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_wet_Urok
 E_wet_Urok$ifault
@@ -633,34 +632,38 @@ writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.t
 
 ## kmeans classification
 ### all Urok
-values1_all_Urok<-scale(getValues(all_Urok)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+
+all_Urok1<-scale(all_Urok)
+
+
+values1_all_Urok<-getValues(all_Urok1[[c(1:13)]]) ## Extract values from each band
 i_all_Urok<-which(!is.na(values1_all_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
 values1_all_Urok<-na.omit(values1_all_Urok) ## omit NA values from data
 head(values1_all_Urok)
 tail(values1_all_Urok)
 
-beginCluster()
+#beginCluster()
 
 #### kmeans classification Urok 10 classes
 set.seed(3)
-E_all_Urok<-kmeans(values1_all_Urok,7,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+E_all_Urok<-kmeans(values1_all_Urok,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_all_Urok
 E_all_Urok$ifault
-kmeans_raster_all_Urok<-raster(all_Urok)
+kmeans_raster_all_Urok<-raster(all_Urok1)
 kmeans_raster_all_Urok[i_all_Urok]<-E_all_Urok$cluster
 
-endCluster()
+#endCluster()
 
-plot(kmeans_raster_all_Urok,col=magma(7),main="kmeans 7 all Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_7_all_Urok_20200116.tif",format="GTiff",overwrite=T)
+plot(kmeans_raster_all_Urok,col=magma(10),main="kmeans 10 all Urok 20200105",colNA="lightskyblue")
+writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_10_all_Urok_20200116.tif",format="GTiff",overwrite=F)
 
 
 ##Bubaque
 
 ### S2a Bub
-values1_S2a_Bub<-getValues(scale(stack(Intertidal_Bub)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_S2a_Bub<-getValues(stack("./Data_out/Intertidal/Intertidal_Bub.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_S2a_Bub<-which(!is.na(values1_S2a_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_Bub<-na.omit(values1_S2a_Bub) ## omit NA values from data
+values1_S2a_Bub<-scale(na.omit(values1_S2a_Bub)) ## omit NA values from data
 head(values1_S2a_Bub)
 tail(values1_S2a_Bub)
 
@@ -671,7 +674,7 @@ set.seed(4)
 E_S2a_Bub<-kmeans(values1_S2a_Bub,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_S2a_Bub
 E_S2a_Bub$ifault
-kmeans_raster_S2a_Bub<-raster(Intertidal_Bub)
+kmeans_raster_S2a_Bub<-raster(stack("./Data_out/Intertidal/Intertidal_Bub.tif"))
 kmeans_raster_S2a_Bub[i_S2a_Bub]<-E_S2a_Bub$cluster
 
 endCluster()
@@ -681,9 +684,9 @@ writeRaster(kmeans_raster_S2a_Bub,"Data_out/Kmeans/kmeans_10_S2a_Bub_20200105.ti
 
 
 ### SAR Bub
-values1_SAR_Bub<-scale(getValues(SAR_Bub)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_SAR_Bub<-getValues(stack("./Data_out/Intertidal/SAR_Bub.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_SAR_Bub<-which(!is.na(values1_SAR_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_Bub<-na.omit(values1_SAR_Bub) ## omit NA values from data
+values1_SAR_Bub<-scale(na.omit(values1_SAR_Bub)) ## omit NA values from data
 head(values1_SAR_Bub)
 tail(values1_SAR_Bub)
 
@@ -694,7 +697,7 @@ set.seed(5)
 E_SAR_Bub<-kmeans(values1_SAR_Bub,8,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_SAR_Bub
 E_SAR_Bub$ifault
-kmeans_raster_SAR_Bub<-raster(SAR_Bub)
+kmeans_raster_SAR_Bub<-raster(stack("./Data_out/Intertidal/SAR_Bub.tif"))
 kmeans_raster_SAR_Bub[i_SAR_Bub]<-E_SAR_Bub$cluster
 
 endCluster()
@@ -724,16 +727,16 @@ names(wet_Bub)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
 
 ## kmeans classification
 ### wet Bub
-values1_wet_Bub<-scale(getValues(wet_Bub)) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+values1_wet_Bub<-getValues(wet_Bub) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_wet_Bub<-which(!is.na(values1_wet_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_wet_Bub<-na.omit(values1_wet_Bub) ## omit NA values from data
+values1_wet_Bub<-scale(na.omit(values1_wet_Bub)) ## omit NA values from data
 head(values1_wet_Bub)
 tail(values1_wet_Bub)
 
 beginCluster()
 
 #### kmeans classification Bub 10 classes
-set.seed(200)
+set.seed(6)
 E_wet_Bub<-kmeans(values1_wet_Bub,4,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_wet_Bub
 E_wet_Bub$ifault
@@ -744,6 +747,21 @@ endCluster()
 
 plot(kmeans_raster_wet_Bub,col=magma(4),main="kmeans 4 wet Bub 20200105",colNA="lightskyblue")
 writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_4_wet_Bub_20200116.tif",format="GTiff",overwrite=F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
