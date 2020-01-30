@@ -727,9 +727,12 @@ names(wet_Bub)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
 
 ## kmeans classification
 ### wet Bub
-values1_wet_Bub<-getValues(wet_Bub) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+
+wet_Bub1<-scale(wet_Bub)
+
+values1_wet_Bub<-getValues(wet_Bub1) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_wet_Bub<-which(!is.na(values1_wet_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_wet_Bub<-scale(na.omit(values1_wet_Bub)) ## omit NA values from data
+values1_wet_Bub<-na.omit(values1_wet_Bub) ## omit NA values from data
 head(values1_wet_Bub)
 tail(values1_wet_Bub)
 
@@ -740,7 +743,7 @@ set.seed(6)
 E_wet_Bub<-kmeans(values1_wet_Bub,4,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_wet_Bub
 E_wet_Bub$ifault
-kmeans_raster_wet_Bub<-raster(wet_Bub)
+kmeans_raster_wet_Bub<-raster(wet_Bub1)
 kmeans_raster_wet_Bub[i_wet_Bub]<-E_wet_Bub$cluster
 
 endCluster()
@@ -766,7 +769,10 @@ writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_4_wet_Bub_20200116.tif
 
 
 ### all Bub
-values1_all_Bub<-scale(getValues(stack("./Data_out/Stack/stack_all_Bub.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+
+all_Bub1<-scale(all_Bub)
+
+values1_all_Bub<-getValues(all_Bub1) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 i_all_Bub<-which(!is.na(values1_all_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
 values1_all_Bub<-na.omit(values1_all_Bub) ## omit NA values from data
 head(values1_all_Bub)
@@ -779,7 +785,7 @@ set.seed(6)
 E_all_Bub<-kmeans(values1_all_Bub,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
 E_all_Bub
 E_all_Bub$ifault
-kmeans_raster_all_Bub<-raster(stack("./Data_out/Stack/stack_all_Bub.tif"))
+kmeans_raster_all_Bub<-raster(all_Bub1)
 kmeans_raster_all_Bub[i_all_Bub]<-E_all_Bub$cluster
 
 endCluster()
