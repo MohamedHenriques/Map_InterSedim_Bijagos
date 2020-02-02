@@ -5,7 +5,7 @@ graphics.off()
 packs<-c("RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis")
 lapply(packs,require,character.only=T)
 
-my.palette<-colorspace::rainbow_hcl(100)
+my.palette<-rev(brewer.pal(10, "Paired"))
 
 ## Load S2 images 
 S2_20200105_a<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S2/Resampled/subset_S2B_MSIL2A_20200105T112349_N0213_R037_T28PCT_20200105T123330_resampled.tif")
@@ -155,11 +155,14 @@ writeRaster(VH_VV_Bolama,"Data_out/SatImg_StudyArea/VH_VV_Bolama.tif",format="GT
 ## Mask with NDWI - this is better for now, after will try other index or new catalao way
 
 ###Urok
+S2a_S2b_Urok<-stack("./Data_out/SatImg_StudyArea/S2a_S2b_Urok.tif")
+names(S2a_S2b_Urok)<-(c("B02","B03","B04","B05","B06","B07","B08","B08a","B09","B11","B12"))
+
 ndwi_Urok<-(S2a_S2b_Urok$B03-S2a_S2b_Urok$B08)/(S2a_S2b_Urok$B03+S2a_S2b_Urok$B08)
-#plot(ndwi_Urok)
-#hist(ndwi_Urok, n=1000, freq=T,axes=F)
-#axis(1,at=c(seq(-0.8,0.8,0.05)))
-#axis(2)
+plot(ndwi_Urok)
+hist(ndwi_Urok, n=1000, freq=T,axes=F)
+axis(1,at=c(seq(-0.8,0.8,0.05)))
+axis(2)
 
 ndwi_Urok_F<-cut(ndwi_Urok,breaks=c(-2,-.30,.20,2))
 #plot(ndwi_Urok_F)
@@ -543,49 +546,59 @@ writeRaster(PCA_Bolama_all$map,"Data_out/PCA/PCA_Bolama_all_20200105-0116-2018.t
 
 ## kmeans classification
 ### S2a Urok
-values1_S2a_Urok<-getValues(stack("./Data_out/Intertidal/Intertidal_urok.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_S2a_Urok<-which(!is.na(values1_S2a_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_Urok<-scale(na.omit(values1_S2a_Urok)) ## omit NA values from data
-head(values1_S2a_Urok)
-tail(values1_S2a_Urok)
+Intertidal_urok<-stack("./Data_out/Intertidal/Intertidal_urok.tif")
+names(Intertidal_urok)<-c(paste("B",c(2:8,"8a",9,11:12),sep="0"))
+plot(Intertidal_urok[[1]])
 
-#beginCluster()
+S2_Urok<-scale(Intertidal_urok) #scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
 
-#### kmeans classification Urok 10 classes
-set.seed(1)
-E_S2a_Urok<-kmeans(values1_S2a_Urok,10,iter.max=1000,nstart=25,algorithm="MacQueen")
-E_S2a_Urok
-E_S2a_Urok$ifault
-kmeans_raster_S2a_Urok<-raster(stack("./Data_out/Intertidal/Intertidal_urok.tif"))
-kmeans_raster_S2a_Urok[i_S2a_Urok]<-E_S2a_Urok$cluster
-
-#endCluster()
-
-plot(kmeans_raster_S2a_Urok,col=magma(10),main="kmeans 10 S2a Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_S2a_Urok,"Data_out/Kmeans/kmeans_10_S2a_Urok_20200105.tif",format="GTiff",overwrite=T)
-
-
-### SAR Urok
-values1_SAR_Urok<-getValues(stack("./Data_out/Intertidal/SAR_Urok.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_SAR_Urok<-which(!is.na(values1_SAR_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_Urok<-scale(na.omit(values1_SAR_Urok)) ## omit NA values from data
-head(values1_SAR_Urok)
-tail(values1_SAR_Urok)
+values1_S2_Urok<-getValues(S2_Urok) ## Extract values from each band of S2 image
+head(values1_S2_Urok)
+tail(values1_S2_Urok)
+z<-apply(values1_S2_Urok,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Urok 10 classes
-set.seed(2)
-E_SAR_Urok<-kmeans(values1_SAR_Urok,5,iter.max=1000,nstart=25,algorithm="MacQueen")
-E_SAR_Urok
-E_SAR_Urok$ifault
-kmeans_raster_SAR_Urok<-raster(stack("./Data_out/Intertidal/SAR_Urok.tif"))
-kmeans_raster_SAR_Urok[i_SAR_Urok]<-E_SAR_Urok$cluster
+#### kmeans classification Urok 4 classes
+set.seed(1)
+E_S2_Urok<-kmeans(values1_S2_Urok[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_S2_Urok
+E_S2_Urok$ifault
+
+kmeans_raster_S2_Urok<-setValues(S2_Urok[[1]],NA)
+kmeans_raster_S2_Urok[sel]<-E_S2_Urok$cluster
+
+plot(kmeans_raster_S2_Urok,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 Urok 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_S2_Urok,"Data_out/Kmeans/kmeans_10_S2_Urok_20200116.tif",format="GTiff",overwrite=F)
 
 endCluster()
 
-plot(kmeans_raster_SAR_Urok,col=magma(5),main="kmeans 5 SAR Urok 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_SAR_Urok,"Data_out/Kmeans/kmeans_5_SAR_Urok_20200116.tif",format="GTiff",overwrite=F)
+### SAR Urok
+SAR_Urok1<-stack("./Data_out/Intertidal/SAR_Urok.tif")
+SAR_Urok<-scale(SAR_Urok1)
+
+values1_SAR_Urok<-getValues(SAR_Urok) ## Extract values from each band of S2 image
+head(values1_SAR_Urok)
+tail(values1_SAR_Urok)
+z<-apply(values1_SAR_Urok,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
+
+beginCluster()
+
+#### kmeans classification Urok 4 classes
+set.seed(2)
+E_SAR_Urok<-kmeans(values1_SAR_Urok[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_SAR_Urok
+E_SAR_Urok$ifault
+
+kmeans_raster_SAR_Urok<-setValues(SAR_Urok[[1]],NA)
+kmeans_raster_SAR_Urok[sel]<-E_SAR_Urok$cluster
+
+plot(kmeans_raster_SAR_Urok,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Urok 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
+writeRaster(kmeans_raster_SAR_Urok,"Data_out/Kmeans/kmeans_5_SAR_Urok_20200116.tif",format="GTiff",overwrite=T)
+
+endCluster()
 
 
 # Create NDWI and stacks fot wet classification
@@ -602,341 +615,465 @@ mNDWI<-(all_Urok$B3-all_Urok$B11)/(all_Urok$B3+all_Urok$B11)
 plot(mNDWI)
 
 U<-stack(all_Urok@layers[c(2,7,10,11:13)])
-wet_Urok<-stack(U,NDWI_1,NDWI_2,mNDWI)
-plot(wet_Urok)
-names(wet_Urok)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
+wet_Urok1<-stack(U,NDWI_1,NDWI_2,mNDWI)
+plot(wet_Urok1)
+names(wet_Urok1)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
 
 ## kmeans classification
 ### wet Urok
-values1_wet_Urok<-getValues(wet_Urok) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_wet_Urok<-which(!is.na(values1_wet_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_wet_Urok<-scale(na.omit(values1_wet_Urok)) ## omit NA values from data
+wet_Urok<-scale(wet_Urok1) #scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
+
+values1_wet_Urok<-getValues(wet_Urok) ## Extract values from each band of S2 image
 head(values1_wet_Urok)
 tail(values1_wet_Urok)
+z<-apply(values1_wet_Urok,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Urok 10 classes
+#### kmeans classification Urok 4 classes
 set.seed(3)
-E_wet_Urok<-kmeans(values1_wet_Urok,3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+E_wet_Urok<-kmeans(values1_wet_Urok[sel,],3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_wet_Urok
 E_wet_Urok$ifault
-kmeans_raster_wet_Urok<-raster(wet_Urok)
-kmeans_raster_wet_Urok[i_wet_Urok]<-E_wet_Urok$cluster
+
+kmeans_raster_wet_Urok<-setValues(wet_Urok[[1]],NA)
+kmeans_raster_wet_Urok[sel]<-E_wet_Urok$cluster
+
+plot(kmeans_raster_wet_Urok,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Urok 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
+writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.tif",format="GTiff",overwrite=F)
 
 endCluster()
-
-plot(kmeans_raster_wet_Urok,col=magma(3),main="kmeans 3 wet Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.tif",format="GTiff",overwrite=F)
 
 
 ## kmeans classification
 ### all Urok
 
-all_Urok1<-scale(all_Urok)
+all_Urok1<-stack("./Data_out/Stack/stack_all_Urok.tif")
+names(all_Urok1)<-c(paste("B",c(2:8,"8a",9,11:12),sep=""),"VH","VV","bat")
+all_Urok<-scale(all_Urok1)
 
-
-values1_all_Urok<-getValues(all_Urok1[[c(1:13)]]) ## Extract values from each band
-i_all_Urok<-which(!is.na(values1_all_Urok)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_all_Urok<-na.omit(values1_all_Urok) ## omit NA values from data
+values1_all_Urok<-getValues(all_Urok) ## Extract values from each band of S2 image
 head(values1_all_Urok)
 tail(values1_all_Urok)
+z<-apply(values1_all_Urok,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
-#beginCluster()
+beginCluster()
 
-#### kmeans classification Urok 10 classes
-set.seed(3)
-E_all_Urok<-kmeans(values1_all_Urok,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification all Urok 10 classes
+set.seed(4)
+E_all_Urok<-kmeans(values1_all_Urok[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_all_Urok
 E_all_Urok$ifault
-kmeans_raster_all_Urok<-raster(all_Urok1)
-kmeans_raster_all_Urok[i_all_Urok]<-E_all_Urok$cluster
 
-#endCluster()
+kmeans_raster_all_Urok<-setValues(all_Urok[[1]],NA)
+kmeans_raster_all_Urok[sel]<-E_all_Urok$cluster
 
-plot(kmeans_raster_all_Urok,col=magma(10),main="kmeans 10 all Urok 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_10_all_Urok_20200116.tif",format="GTiff",overwrite=F)
+plot(kmeans_raster_all_Urok,col=rev(brewer.pal(10, "Paired")),main="kmeans 10 all Urok 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_10_all_Urok_20200116.tif",format="GTiff",overwrite=T)
 
+endCluster()
 
 ##Bubaque
 
 ### S2a Bub
-values1_S2a_Bub<-getValues(stack("./Data_out/Intertidal/Intertidal_Bub.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_S2a_Bub<-which(!is.na(values1_S2a_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_Bub<-scale(na.omit(values1_S2a_Bub)) ## omit NA values from data
-head(values1_S2a_Bub)
-tail(values1_S2a_Bub)
+S2_Bub1<-stack("./Data_out/Intertidal/Intertidal_Bub.tif")
+names(S2_Bub1)<-c(paste("B",c(2:8,"8a",9,11:12),sep="0"))
+S2_Bub<-scale(S2_Bub1)
+
+values1_S2_Bub<-getValues(S2_Bub) ## Extract values from each band of S2 image
+head(values1_S2_Bub)
+tail(values1_S2_Bub)
+z<-apply(values1_S2_Bub,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bub 10 classes
-set.seed(4)
-E_S2a_Bub<-kmeans(values1_S2a_Bub,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
-E_S2a_Bub
-E_S2a_Bub$ifault
-kmeans_raster_S2a_Bub<-raster(stack("./Data_out/Intertidal/Intertidal_Bub.tif"))
-kmeans_raster_S2a_Bub[i_S2a_Bub]<-E_S2a_Bub$cluster
+#### kmeans classification Bub 4 classes
+set.seed(5)
+E_S2_Bub<-kmeans(values1_S2_Bub[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_S2_Bub
+E_S2_Bub$ifault
+
+kmeans_raster_S2_Bub<-setValues(S2_Bub[[1]],NA)
+kmeans_raster_S2_Bub[sel]<-E_S2_Bub$cluster
+
+plot(kmeans_raster_S2_Bub,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 Bub 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_S2_Bub,"Data_out/Kmeans/kmeans_10_S2_Bub_20200105.tif",format="GTiff",overwrite=T)
 
 endCluster()
-
-plot(kmeans_raster_S2a_Bub,col=magma(10),main="kmeans 10 S2a Bub 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_S2a_Bub,"Data_out/Kmeans/kmeans_10_S2a_Bub_20200105.tif",format="GTiff",overwrite=F)
 
 
 ### SAR Bub
-values1_SAR_Bub<-getValues(stack("./Data_out/Intertidal/SAR_Bub.tif")) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_SAR_Bub<-which(!is.na(values1_SAR_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_Bub<-scale(na.omit(values1_SAR_Bub)) ## omit NA values from data
+SAR_Bub1<-stack("./Data_out/Intertidal/SAR_Bub.tif")
+names(SAR_Bub1)<-c("VH","VV")
+SAR_Bub<-scale(SAR_Bub1)
+
+values1_SAR_Bub<-getValues(SAR_Bub) ## Extract values from each band of S2 image
 head(values1_SAR_Bub)
 tail(values1_SAR_Bub)
+z<-apply(values1_SAR_Bub,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bub 10 classes
-set.seed(5)
-E_SAR_Bub<-kmeans(values1_SAR_Bub,8,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification Bub 4 classes
+set.seed(6)
+E_SAR_Bub<-kmeans(values1_SAR_Bub[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_SAR_Bub
 E_SAR_Bub$ifault
-kmeans_raster_SAR_Bub<-raster(stack("./Data_out/Intertidal/SAR_Bub.tif"))
-kmeans_raster_SAR_Bub[i_SAR_Bub]<-E_SAR_Bub$cluster
+
+kmeans_raster_SAR_Bub<-setValues(SAR_Bub[[1]],NA)
+kmeans_raster_SAR_Bub[sel]<-E_SAR_Bub$cluster
+
+plot(kmeans_raster_SAR_Bub,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Bub 20200116",colNA=NA,axis.args=list(at=1:7,labels=1:7))
+writeRaster(kmeans_raster_SAR_Bub,"Data_out/Kmeans/kmeans_5_SAR_Bub_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
-plot(kmeans_raster_SAR_Bub,col=magma(8),main="kmeans 8 SAR Bub 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_SAR_Bub,"Data_out/Kmeans/kmeans_8_SAR_Bub_20200116.tif",format="GTiff",overwrite=F)
-
-
 ### all Bub
 
-all_Bub<-stack("./Data_out/Stack/stack_all_Bub.tif")
-names(all_Bub)<-c(paste("B",c(2:8,"8a",9,11:12),sep=""),"VH","VV","bat")
-plot(all_Bub)
+all_Bub1<-stack("./Data_out/Stack/stack_all_Bub.tif")
+names(all_Bub1)<-c(paste("B",c(2:8,"8a",9,11:12),sep=""),"VH","VV","bat")
+all_Bub<-scale(all_Bub1)
 
 
-NDWI_1<-(all_Bub$B8-all_Bub$B12)/(all_Bub$B8+all_Bub$B12)
+NDWI_1<-(all_Bub1$B8-all_Bub1$B12)/(all_Bub1$B8+all_Bub1$B12)
 plot(NDWI_1)
-NDWI_2<-(all_Bub$B3-all_Bub$B8)/(all_Bub$B3+all_Bub$B8)
+NDWI_2<-(all_Bub1$B3-all_Bub1$B8)/(all_Bub1$B3+all_Bub1$B8)
 plot(NDWI_2)
-mNDWI<-(all_Bub$B3-all_Bub$B11)/(all_Bub$B3+all_Bub$B11)
+mNDWI<-(all_Bub1$B3-all_Bub1$B11)/(all_Bub1$B3+all_Bub1$B11)
 plot(mNDWI)
 
-U<-stack(all_Bub@layers[c(2,7,10,11:13)])
-wet_Bub<-stack(U,NDWI_1,NDWI_2,mNDWI)
-plot(wet_Bub)
-names(wet_Bub)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
+U<-stack(all_Bub1@layers[c(2,7,10,11:13)])
+wet_Bub1<-stack(U,NDWI_1,NDWI_2,mNDWI)
+#plot(wet_Bub1)
+names(wet_Bub1)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
 
 ## kmeans classification
 ### wet Bub
 
-wet_Bub1<-scale(wet_Bub)
+wet_Bub<-scale(wet_Bub1)
 
-values1_wet_Bub<-getValues(wet_Bub1) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_wet_Bub<-which(!is.na(values1_wet_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_wet_Bub<-na.omit(values1_wet_Bub) ## omit NA values from data
+values1_wet_Bub<-getValues(wet_Bub) ## Extract values from each band of S2 image
 head(values1_wet_Bub)
 tail(values1_wet_Bub)
+z<-apply(values1_wet_Bub,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bub 10 classes
-set.seed(6)
-E_wet_Bub<-kmeans(values1_wet_Bub,4,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification Bub 4 classes
+set.seed(7)
+E_wet_Bub<-kmeans(values1_wet_Bub[sel,],3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_wet_Bub
 E_wet_Bub$ifault
-kmeans_raster_wet_Bub<-raster(wet_Bub1)
-kmeans_raster_wet_Bub[i_wet_Bub]<-E_wet_Bub$cluster
+
+kmeans_raster_wet_Bub<-setValues(wet_Bub[[1]],NA)
+kmeans_raster_wet_Bub[sel]<-E_wet_Bub$cluster
+
+plot(kmeans_raster_wet_Bub,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Bub 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
+writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_3_wet_Bub_20200116.tif",format="GTiff",overwrite=F)
 
 endCluster()
-
-plot(kmeans_raster_wet_Bub,col=magma(4),main="kmeans 4 wet Bub 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_4_wet_Bub_20200116.tif",format="GTiff",overwrite=F)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### all Bub
 
-all_Bub1<-scale(all_Bub)
+#all_Bub<-scale(all_Bub1)
 
-values1_all_Bub<-getValues(all_Bub1) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_all_Bub<-which(!is.na(values1_all_Bub)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_all_Bub<-na.omit(values1_all_Bub) ## omit NA values from data
+values1_all_Bub<-getValues(all_Bub) ## Extract values from each band of S2 image
 head(values1_all_Bub)
 tail(values1_all_Bub)
+z<-apply(values1_all_Bub,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bub 10 classes
-set.seed(6)
-E_all_Bub<-kmeans(values1_all_Bub,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification Bub 4 classes
+set.seed(8)
+E_all_Bub<-kmeans(values1_all_Bub[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_all_Bub
 E_all_Bub$ifault
-kmeans_raster_all_Bub<-raster(all_Bub1)
-kmeans_raster_all_Bub[i_all_Bub]<-E_all_Bub$cluster
+
+kmeans_raster_all_Bub<-setValues(all_Bub[[1]],NA)
+kmeans_raster_all_Bub[sel]<-E_all_Bub$cluster
+
+plot(kmeans_raster_all_Bub,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all Bub 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+#writeRaster(kmeans_raster_all_Bub,"Data_out/Kmeans/kmeans_10_all_Bub_20200116.tif",format="GTiff",overwrite=F)
 
 endCluster()
 
-plot(kmeans_raster_all_Bub,col=magma(10),main="kmeans 10 all Bub 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_Bub,"Data_out/Kmeans/kmeans_10_all_Bub_20200116.tif",format="GTiff",overwrite=F)
+
+
+
+
+
+
+
+
 
 
 
 ##Canhabaque Galinhas
 
 ### S2a CanhGa
-values1_S2a_CanhGa<-scale(getValues(raster("./Data_out/Intertidal/Intertidal_CanhGa.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_S2a_CanhGa<-which(!is.na(values1_S2a_CanhGa)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_CanhGa<-na.omit(values1_S2a_CanhGa) ## omit NA values from data
-head(values1_S2a_CanhGa)
-tail(values1_S2a_CanhGa)
+S2_CanhGa1<-stack("./Data_out/Intertidal/Intertidal_CanhGa.tif")
+names(S2_CanhGa1)<-c(c(paste("B",c(2:8,"8a",9,11:12),sep="0")))
+S2_CanhGa<-scale(S2_CanhGa1)
+
+values1_S2_CanhGa<-getValues(S2_CanhGa) ## Extract values from each band of S2 image
+head(values1_S2_CanhGa)
+tail(values1_S2_CanhGa)
+z<-apply(values1_S2_CanhGa,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification CanhGa 10 classes
-set.seed(7)
-E_S2a_CanhGa<-kmeans(values1_S2a_CanhGa,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
-E_S2a_CanhGa
-E_S2a_CanhGa$ifault
-kmeans_raster_S2a_CanhGa<-raster(raster("./Data_out/Intertidal/Intertidal_CanhGa.tif"))
-kmeans_raster_S2a_CanhGa[i_S2a_CanhGa]<-E_S2a_CanhGa$cluster
+#### kmeans classification CanhGa 4 classes
+set.seed(9)
+E_S2_CanhGa<-kmeans(values1_S2_CanhGa[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_S2_CanhGa
+E_S2_CanhGa$ifault
+
+kmeans_raster_S2_CanhGa<-setValues(S2_CanhGa[[1]],NA)
+kmeans_raster_S2_CanhGa[sel]<-E_S2_CanhGa$cluster
+
+plot(kmeans_raster_S2_CanhGa,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 CanhGa 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_S2_CanhGa,"Data_out/Kmeans/kmeans_10_S2_CanhGa_20200105.tif",format="GTiff",overwrite=T)
 
 endCluster()
-
-plot(kmeans_raster_S2a_CanhGa,col=magma(10),main="kmeans 10 S2a CanhGa 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_S2a_CanhGa,"Data_out/Kmeans/kmeans_10_S2a_CanhGa_20200105.tif",format="GTiff",overwrite=F)
 
 
 ### SAR CanhGa
-values1_SAR_CanhGa<-scale(getValues(raster("./Data_out/Intertidal/SAR_CanhGa.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_SAR_CanhGa<-which(!is.na(values1_SAR_CanhGa)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_CanhGa<-na.omit(values1_SAR_CanhGa) ## omit NA values from data
+SAR_CanhGa1<-stack("./Data_out/Intertidal/SAR_CanhGa.tif")
+names(SAR_CanhGa1)<-c("VH","VV")
+SAR_CanhGa<-scale(SAR_CanhGa1)
+
+values1_SAR_CanhGa<-getValues(SAR_CanhGa) ## Extract values from each band of S2 image
 head(values1_SAR_CanhGa)
 tail(values1_SAR_CanhGa)
+z<-apply(values1_SAR_CanhGa,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification CanhGa 10 classes
-set.seed(8)
-E_SAR_CanhGa<-kmeans(values1_SAR_CanhGa,5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification CanhGa 4 classes
+set.seed(10)
+E_SAR_CanhGa<-kmeans(values1_SAR_CanhGa[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_SAR_CanhGa
 E_SAR_CanhGa$ifault
-kmeans_raster_SAR_CanhGa<-raster(raster("./Data_out/Intertidal/SAR_CanhGa.tif"))
-kmeans_raster_SAR_CanhGa[i_SAR_CanhGa]<-E_SAR_CanhGa$cluster
+
+kmeans_raster_SAR_CanhGa<-setValues(SAR_CanhGa[[1]],NA)
+kmeans_raster_SAR_CanhGa[sel]<-E_SAR_CanhGa$cluster
+
+plot(kmeans_raster_SAR_CanhGa,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR CanhGa 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
+writeRaster(kmeans_raster_SAR_CanhGa,"Data_out/Kmeans/kmeans_5_SAR_CanhGa_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
-plot(kmeans_raster_SAR_CanhGa,col=magma(5),main="kmeans 5 SAR CanhGa 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_SAR_CanhGa,"Data_out/Kmeans/kmeans_5_SAR_CanhGa_20200116.tif",format="GTiff",overwrite=F)
+### all CanhGa
 
+all_CanhGa1<-stack("./Data_out/Stack/stack_all_CanhGa.tif")
+names(all_CanhGa1)<-c(paste("B",c(2:8,"8a",9),sep="0"), paste("B",c(11:12),sep=""),"VH","VV")
+all_CanhGa<-scale(all_CanhGa1)
+
+
+NDWI_1<-(all_CanhGa1$B08-all_CanhGa1$B12)/(all_CanhGa1$B08+all_CanhGa1$B12)
+plot(NDWI_1)
+NDWI_2<-(all_CanhGa1$B03-all_CanhGa1$B08)/(all_CanhGa1$B03+all_CanhGa1$B08)
+plot(NDWI_2)
+mNDWI<-(all_CanhGa1$B03-all_CanhGa1$B11)/(all_CanhGa1$B03+all_CanhGa1$B11)
+plot(mNDWI)
+
+U<-stack(all_CanhGa1@layers[c(2,7,10,11:13)])
+wet_CanhGa1<-stack(U,NDWI_1,NDWI_2,mNDWI)
+#plot(wet_CanhGa1)
+names(wet_CanhGa1)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
+
+## kmeans classification
+### wet CanhGa
+
+wet_CanhGa<-scale(wet_CanhGa1)
+
+values1_wet_CanhGa<-getValues(wet_CanhGa) ## Extract values from each band of S2 image
+head(values1_wet_CanhGa)
+tail(values1_wet_CanhGa)
+z<-apply(values1_wet_CanhGa,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
+
+beginCluster()
+
+#### kmeans classification CanhGa 4 classes
+set.seed(11)
+E_wet_CanhGa<-kmeans(values1_wet_CanhGa[sel,],3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_wet_CanhGa
+E_wet_CanhGa$ifault
+
+kmeans_raster_wet_CanhGa<-setValues(wet_CanhGa[[1]],NA)
+kmeans_raster_wet_CanhGa[sel]<-E_wet_CanhGa$cluster
+
+plot(kmeans_raster_wet_CanhGa,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet CanhGa 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
+writeRaster(kmeans_raster_wet_CanhGa,"Data_out/Kmeans/kmeans_3_wet_CanhGa_20200116.tif",format="GTiff",overwrite=T)
+
+endCluster()
 
 ### all CanhGa
-values1_all_CanhGa<-scale(getValues(raster("./Data_out/Stack/stack_all_CanhGa.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_all_CanhGa<-which(!is.na(values1_all_CanhGa)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_all_CanhGa<-na.omit(values1_all_CanhGa) ## omit NA values from data
+
+#all_CanhGa<-scale(all_CanhGa1)
+
+values1_all_CanhGa<-getValues(all_CanhGa) ## Extract values from each band of S2 image
 head(values1_all_CanhGa)
 tail(values1_all_CanhGa)
+z<-apply(values1_all_CanhGa,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
 #### kmeans classification CanhGa 10 classes
-set.seed(9)
-E_all_CanhGa<-kmeans(values1_all_CanhGa,7,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+set.seed(12)
+E_all_CanhGa<-kmeans(values1_all_CanhGa[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_all_CanhGa
 E_all_CanhGa$ifault
-kmeans_raster_all_CanhGa<-raster(raster("./Data_out/Stack/stack_all_CanhGa.tif"))
-kmeans_raster_all_CanhGa[i_all_CanhGa]<-E_all_CanhGa$cluster
+
+kmeans_raster_all_CanhGa<-setValues(all_CanhGa[[1]],NA)
+kmeans_raster_all_CanhGa[sel]<-E_all_CanhGa$cluster
+
+plot(kmeans_raster_all_CanhGa,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all CanhGa 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_all_CanhGa,"Data_out/Kmeans/kmeans_10_all_CanhGa_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
-
-plot(kmeans_raster_all_CanhGa,col=magma(7),main="kmeans 7 all CanhGa 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_CanhGa,"Data_out/Kmeans/kmeans_7_all_CanhGa_20200116.tif",format="GTiff",overwrite=F)
 
 
 
 ##Bolama
 
 ### S2a Bolama
-values1_S2a_Bolama<-scale(getValues(raster("./Data_out/Intertidal/Intertidal_Bolama.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_S2a_Bolama<-which(!is.na(values1_S2a_Bolama)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_S2a_Bolama<-na.omit(values1_S2a_Bolama) ## omit NA values from data
-head(values1_S2a_Bolama)
-tail(values1_S2a_Bolama)
+S2_Bolama1<-stack("./Data_out/Intertidal/Intertidal_Bolama.tif")
+names(S2_Bolama1)<-c(c(paste("B",c(2:8,"8a",9,11:12),sep="0")))
+S2_Bolama<-scale(S2_Bolama1)
+
+values1_S2_Bolama<-getValues(S2_Bolama) ## Extract values from each band of S2 image
+head(values1_S2_Bolama)
+tail(values1_S2_Bolama)
+z<-apply(values1_S2_Bolama,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bolama 10 classes
-set.seed(7)
-E_S2a_Bolama<-kmeans(values1_S2a_Bolama,10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
-E_S2a_Bolama
-E_S2a_Bolama$ifault
-kmeans_raster_S2a_Bolama<-raster(raster("./Data_out/Intertidal/Intertidal_Bolama.tif"))
-kmeans_raster_S2a_Bolama[i_S2a_Bolama]<-E_S2a_Bolama$cluster
+#### kmeans classification Bolama 4 classes
+set.seed(13)
+E_S2_Bolama<-kmeans(values1_S2_Bolama[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_S2_Bolama
+E_S2_Bolama$ifault
+
+kmeans_raster_S2_Bolama<-setValues(S2_Bolama[[1]],NA)
+kmeans_raster_S2_Bolama[sel]<-E_S2_Bolama$cluster
+
+plot(kmeans_raster_S2_Bolama,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 Bolama 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_S2_Bolama,"Data_out/Kmeans/kmeans_10_S2_Bolama_20200105.tif",format="GTiff",overwrite=T)
 
 endCluster()
-
-plot(kmeans_raster_S2a_Bolama,col=magma(10),main="kmeans 10 S2a Bolama 20200105",colNA="lightskyblue")
-writeRaster(kmeans_raster_S2a_Bolama,"Data_out/Kmeans/kmeans_10_S2a_Bolama_20200105.tif",format="GTiff",overwrite=F)
 
 
 ### SAR Bolama
-values1_SAR_Bolama<-scale(getValues(raster("./Data_out/Intertidal/SAR_Bolama.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_SAR_Bolama<-which(!is.na(values1_SAR_Bolama)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_SAR_Bolama<-na.omit(values1_SAR_Bolama) ## omit NA values from data
+SAR_Bolama1<-stack("./Data_out/Intertidal/SAR_Bolama.tif")
+names(SAR_Bolama1)<-c("VH","VV")
+SAR_Bolama<-scale(SAR_Bolama1)
+
+values1_SAR_Bolama<-getValues(SAR_Bolama) ## Extract values from each band of S2 image
 head(values1_SAR_Bolama)
 tail(values1_SAR_Bolama)
+z<-apply(values1_SAR_Bolama,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bolama 10 classes
-set.seed(8)
-E_SAR_Bolama<-kmeans(values1_SAR_Bolama,5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+#### kmeans classification Bolama 4 classes
+set.seed(14)
+E_SAR_Bolama<-kmeans(values1_SAR_Bolama[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_SAR_Bolama
 E_SAR_Bolama$ifault
-kmeans_raster_SAR_Bolama<-raster(raster("./Data_out/Intertidal/SAR_Bolama.tif"))
-kmeans_raster_SAR_Bolama[i_SAR_Bolama]<-E_SAR_Bolama$cluster
+
+kmeans_raster_SAR_Bolama<-setValues(SAR_Bolama[[1]],NA)
+kmeans_raster_SAR_Bolama[sel]<-E_SAR_Bolama$cluster
+
+plot(kmeans_raster_SAR_Bolama,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Bolama 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
+writeRaster(kmeans_raster_SAR_Bolama,"Data_out/Kmeans/kmeans_5_SAR_Bolama_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
-plot(kmeans_raster_SAR_Bolama,col=magma(5),main="kmeans 5 SAR Bolama 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_SAR_Bolama,"Data_out/Kmeans/kmeans_5_SAR_Bolama_20200116.tif",format="GTiff",overwrite=F)
+### all Bolama
 
+all_Bolama1<-stack("./Data_out/Stack/stack_all_Bolama.tif")
+names(all_Bolama1)<-c(paste("B",c(2:8,"8a",9),sep="0"), paste("B",c(11:12),sep=""),"VH","VV")
+all_Bolama<-scale(all_Bolama1)
+
+
+NDWI_1<-(all_Bolama1$B08-all_Bolama1$B12)/(all_Bolama1$B08+all_Bolama1$B12)
+plot(NDWI_1)
+NDWI_2<-(all_Bolama1$B03-all_Bolama1$B08)/(all_Bolama1$B03+all_Bolama1$B08)
+plot(NDWI_2)
+mNDWI<-(all_Bolama1$B03-all_Bolama1$B11)/(all_Bolama1$B03+all_Bolama1$B11)
+plot(mNDWI)
+
+U<-stack(all_Bolama1@layers[c(2,7,10,11:13)])
+wet_Bolama1<-stack(U,NDWI_1,NDWI_2,mNDWI)
+#plot(wet_Bolama1)
+names(wet_Bolama1)<-c(names(U),"NDWI_1","NDWI_2","mNDWI")
+
+## kmeans classification
+### wet Bolama
+
+wet_Bolama<-scale(wet_Bolama1)
+
+values1_wet_Bolama<-getValues(wet_Bolama) ## Extract values from each band of S2 image
+head(values1_wet_Bolama)
+tail(values1_wet_Bolama)
+z<-apply(values1_wet_Bolama,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
+
+beginCluster()
+
+#### kmeans classification Bolama 4 classes
+set.seed(15)
+E_wet_Bolama<-kmeans(values1_wet_Bolama[sel,],3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_wet_Bolama
+E_wet_Bolama$ifault
+
+kmeans_raster_wet_Bolama<-setValues(wet_Bolama[[1]],NA)
+kmeans_raster_wet_Bolama[sel]<-E_wet_Bolama$cluster
+
+plot(kmeans_raster_wet_Bolama,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Bolama 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
+writeRaster(kmeans_raster_wet_Bolama,"Data_out/Kmeans/kmeans_3_wet_Bolama_20200116.tif",format="GTiff",overwrite=T)
+
+endCluster()
 
 ### all Bolama
-values1_all_Bolama<-scale(getValues(raster("./Data_out/Stack/stack_all_Bolama.tif"))) ## Extract values from each band of S2 image, then scale the values as we don’t want the k-means algorithm to depend to an arbitrary variable unit
-i_all_Bolama<-which(!is.na(values1_all_Bolama)) ## k-means can't deal with missing values, so create an vector with the positions without NA
-values1_all_Bolama<-na.omit(values1_all_Bolama) ## omit NA values from data
+
+#all_Bolama<-scale(all_Bolama1)
+
+values1_all_Bolama<-getValues(all_Bolama) ## Extract values from each band of S2 image
 head(values1_all_Bolama)
 tail(values1_all_Bolama)
+z<-apply(values1_all_Bolama,1,function(x) sum(is.na(x))) #identify all rows that contain a null value
+sel<-which(z==0)
 
 beginCluster()
 
 #### kmeans classification Bolama 10 classes
-set.seed(9)
-E_all_Bolama<-kmeans(values1_all_Bolama,7,iter.max=1000,nstart=25,algorithm="Hartigan-Wong")
+set.seed(16)
+E_all_Bolama<-kmeans(values1_all_Bolama[sel,],10,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_all_Bolama
 E_all_Bolama$ifault
-kmeans_raster_all_Bolama<-raster(raster("./Data_out/Stack/stack_all_Bolama.tif"))
-kmeans_raster_all_Bolama[i_all_Bolama]<-E_all_Bolama$cluster
+
+kmeans_raster_all_Bolama<-setValues(all_Bolama[[1]],NA)
+kmeans_raster_all_Bolama[sel]<-E_all_Bolama$cluster
+
+plot(kmeans_raster_all_Bolama,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all Bolama 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+writeRaster(kmeans_raster_all_Bolama,"Data_out/Kmeans/kmeans_10_all_Bolama_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
-
-plot(kmeans_raster_all_Bolama,col=magma(7),main="kmeans 7 all Bolama 20200116",colNA="lightskyblue")
-writeRaster(kmeans_raster_all_Bolama,"Data_out/Kmeans/kmeans_7_all_Bolama_20200116.tif",format="GTiff",overwrite=F)
-
 
 
 
