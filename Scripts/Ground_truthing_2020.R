@@ -570,7 +570,8 @@ kmeans_raster_S2_Urok<-setValues(S2_Urok[[1]],NA)
 kmeans_raster_S2_Urok[sel]<-E_S2_Urok$cluster
 
 plot(kmeans_raster_S2_Urok,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 Urok 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-writeRaster(kmeans_raster_S2_Urok,"Data_out/Kmeans/kmeans_10_S2_Urok_20200116.tif",format="GTiff",overwrite=F)
+writeRaster(kmeans_raster_S2_Urok,"Data_out/Kmeans/kmeans_10_S2_Urok_20200116.tif",format="GTiff",overwrite=T)
+
 
 endCluster()
 
@@ -641,7 +642,7 @@ kmeans_raster_wet_Urok<-setValues(wet_Urok[[1]],NA)
 kmeans_raster_wet_Urok[sel]<-E_wet_Urok$cluster
 
 plot(kmeans_raster_wet_Urok,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Urok 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
-writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.tif",format="GTiff",overwrite=F)
+writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -670,7 +671,7 @@ E_all_Urok$ifault
 kmeans_raster_all_Urok<-setValues(all_Urok[[1]],NA)
 kmeans_raster_all_Urok[sel]<-E_all_Urok$cluster
 
-plot(kmeans_raster_all_Urok,col=rev(brewer.pal(10, "Paired")),main="kmeans 10 all Urok 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
+plot(kmeans_raster_all_Urok,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all Urok 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
 writeRaster(kmeans_raster_all_Urok,"Data_out/Kmeans/kmeans_10_all_Urok_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
@@ -718,7 +719,7 @@ sel<-which(z==0)
 
 beginCluster()
 
-#### kmeans classification Bub 4 classes
+#### kmeans classification Bub 5 classes
 set.seed(6)
 E_SAR_Bub<-kmeans(values1_SAR_Bub[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_SAR_Bub
@@ -727,7 +728,7 @@ E_SAR_Bub$ifault
 kmeans_raster_SAR_Bub<-setValues(SAR_Bub[[1]],NA)
 kmeans_raster_SAR_Bub[sel]<-E_SAR_Bub$cluster
 
-plot(kmeans_raster_SAR_Bub,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Bub 20200116",colNA=NA,axis.args=list(at=1:7,labels=1:7))
+plot(kmeans_raster_SAR_Bub,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Bub 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
 writeRaster(kmeans_raster_SAR_Bub,"Data_out/Kmeans/kmeans_5_SAR_Bub_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
@@ -774,7 +775,7 @@ kmeans_raster_wet_Bub<-setValues(wet_Bub[[1]],NA)
 kmeans_raster_wet_Bub[sel]<-E_wet_Bub$cluster
 
 plot(kmeans_raster_wet_Bub,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Bub 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
-writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_3_wet_Bub_20200116.tif",format="GTiff",overwrite=F)
+writeRaster(kmeans_raster_wet_Bub,"Data_out/Kmeans/kmeans_3_wet_Bub_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -800,7 +801,7 @@ kmeans_raster_all_Bub<-setValues(all_Bub[[1]],NA)
 kmeans_raster_all_Bub[sel]<-E_all_Bub$cluster
 
 plot(kmeans_raster_all_Bub,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all Bub 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-#writeRaster(kmeans_raster_all_Bub,"Data_out/Kmeans/kmeans_10_all_Bub_20200116.tif",format="GTiff",overwrite=F)
+writeRaster(kmeans_raster_all_Bub,"Data_out/Kmeans/kmeans_10_all_Bub_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -840,7 +841,7 @@ kmeans_raster_S2_CanhGa<-setValues(S2_CanhGa[[1]],NA)
 kmeans_raster_S2_CanhGa[sel]<-E_S2_CanhGa$cluster
 
 plot(kmeans_raster_S2_CanhGa,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 CanhGa 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-writeRaster(kmeans_raster_S2_CanhGa,"Data_out/Kmeans/kmeans_10_S2_CanhGa_20200105.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_S2_CanhGa,"Data_out/Kmeans/kmeans_10_S2_CanhGa_20200105.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -868,7 +869,7 @@ kmeans_raster_SAR_CanhGa<-setValues(SAR_CanhGa[[1]],NA)
 kmeans_raster_SAR_CanhGa[sel]<-E_SAR_CanhGa$cluster
 
 plot(kmeans_raster_SAR_CanhGa,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR CanhGa 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
-writeRaster(kmeans_raster_SAR_CanhGa,"Data_out/Kmeans/kmeans_5_SAR_CanhGa_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_SAR_CanhGa,"Data_out/Kmeans/kmeans_5_SAR_CanhGa_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -880,11 +881,11 @@ all_CanhGa<-scale(all_CanhGa1)
 
 
 NDWI_1<-(all_CanhGa1$B08-all_CanhGa1$B12)/(all_CanhGa1$B08+all_CanhGa1$B12)
-plot(NDWI_1)
+#plot(NDWI_1)
 NDWI_2<-(all_CanhGa1$B03-all_CanhGa1$B08)/(all_CanhGa1$B03+all_CanhGa1$B08)
-plot(NDWI_2)
+#plot(NDWI_2)
 mNDWI<-(all_CanhGa1$B03-all_CanhGa1$B11)/(all_CanhGa1$B03+all_CanhGa1$B11)
-plot(mNDWI)
+#plot(mNDWI)
 
 U<-stack(all_CanhGa1@layers[c(2,7,10,11:13)])
 wet_CanhGa1<-stack(U,NDWI_1,NDWI_2,mNDWI)
@@ -914,7 +915,7 @@ kmeans_raster_wet_CanhGa<-setValues(wet_CanhGa[[1]],NA)
 kmeans_raster_wet_CanhGa[sel]<-E_wet_CanhGa$cluster
 
 plot(kmeans_raster_wet_CanhGa,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet CanhGa 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
-writeRaster(kmeans_raster_wet_CanhGa,"Data_out/Kmeans/kmeans_3_wet_CanhGa_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_wet_CanhGa,"Data_out/Kmeans/kmeans_3_wet_CanhGa_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -940,7 +941,7 @@ kmeans_raster_all_CanhGa<-setValues(all_CanhGa[[1]],NA)
 kmeans_raster_all_CanhGa[sel]<-E_all_CanhGa$cluster
 
 plot(kmeans_raster_all_CanhGa,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all CanhGa 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-writeRaster(kmeans_raster_all_CanhGa,"Data_out/Kmeans/kmeans_10_all_CanhGa_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_all_CanhGa,"Data_out/Kmeans/kmeans_10_all_CanhGa_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -971,7 +972,7 @@ kmeans_raster_S2_Bolama<-setValues(S2_Bolama[[1]],NA)
 kmeans_raster_S2_Bolama[sel]<-E_S2_Bolama$cluster
 
 plot(kmeans_raster_S2_Bolama,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 S2 Bolama 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-writeRaster(kmeans_raster_S2_Bolama,"Data_out/Kmeans/kmeans_10_S2_Bolama_20200105.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_S2_Bolama,"Data_out/Kmeans/kmeans_10_S2_Bolama_20200105.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -999,7 +1000,7 @@ kmeans_raster_SAR_Bolama<-setValues(SAR_Bolama[[1]],NA)
 kmeans_raster_SAR_Bolama[sel]<-E_SAR_Bolama$cluster
 
 plot(kmeans_raster_SAR_Bolama,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 SAR Bolama 20200116",colNA=NA,axis.args=list(at=1:5,labels=1:5))
-writeRaster(kmeans_raster_SAR_Bolama,"Data_out/Kmeans/kmeans_5_SAR_Bolama_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_SAR_Bolama,"Data_out/Kmeans/kmeans_5_SAR_Bolama_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -1011,11 +1012,11 @@ all_Bolama<-scale(all_Bolama1)
 
 
 NDWI_1<-(all_Bolama1$B08-all_Bolama1$B12)/(all_Bolama1$B08+all_Bolama1$B12)
-plot(NDWI_1)
+#plot(NDWI_1)
 NDWI_2<-(all_Bolama1$B03-all_Bolama1$B08)/(all_Bolama1$B03+all_Bolama1$B08)
-plot(NDWI_2)
+#plot(NDWI_2)
 mNDWI<-(all_Bolama1$B03-all_Bolama1$B11)/(all_Bolama1$B03+all_Bolama1$B11)
-plot(mNDWI)
+#plot(mNDWI)
 
 U<-stack(all_Bolama1@layers[c(2,7,10,11:13)])
 wet_Bolama1<-stack(U,NDWI_1,NDWI_2,mNDWI)
@@ -1045,7 +1046,7 @@ kmeans_raster_wet_Bolama<-setValues(wet_Bolama[[1]],NA)
 kmeans_raster_wet_Bolama[sel]<-E_wet_Bolama$cluster
 
 plot(kmeans_raster_wet_Bolama,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Bolama 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
-writeRaster(kmeans_raster_wet_Bolama,"Data_out/Kmeans/kmeans_3_wet_Bolama_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_wet_Bolama,"Data_out/Kmeans/kmeans_3_wet_Bolama_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
@@ -1071,7 +1072,7 @@ kmeans_raster_all_Bolama<-setValues(all_Bolama[[1]],NA)
 kmeans_raster_all_Bolama[sel]<-E_all_Bolama$cluster
 
 plot(kmeans_raster_all_Bolama,col=rev(brewer.pal(10,"Paired")),main="kmeans 10 all Bolama 20200105",colNA=NA,axis.args=list(at=1:10,labels=1:10))
-writeRaster(kmeans_raster_all_Bolama,"Data_out/Kmeans/kmeans_10_all_Bolama_20200116.tif",format="GTiff",overwrite=T)
+#writeRaster(kmeans_raster_all_Bolama,"Data_out/Kmeans/kmeans_10_all_Bolama_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
