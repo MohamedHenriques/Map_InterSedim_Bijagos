@@ -124,12 +124,6 @@ ggplot(DF2,aes(x=lon,y=lat, colour=factor(DF2$Day)))+
 
 
 ## build shape files
-z<-disc(radius=as.numeric(as.character(DF2$Radius[1])),centre=c(DF2$lon[1],DF2$lat[1]))
-plot(z)
-axis(1)
-axis(2)
-
-
 coordinates(DF2)<-c("lon","lat")
 crs(DF2)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 c<-spTransform(DF2,CRS("+init=epsg:32628"))
@@ -146,34 +140,3 @@ plot(poly_GT[which(poly_GT$Point=="3323100"|poly_GT$Point=="3333100"),], col=c("
 
 writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT",driver="ESRI Shapefile",overwrite=T)
 
-
-b[[1]]
-
-
-Soil_moisture<-as.data.frame(table(DF1$Class_1))
-Grain_size<-as.data.frame(table(DF1$Class_2))
-Main_cover<-as.data.frame(table(DF1$Class_3))
-
-
-SM<-aggregate(as.numeric(as.character(DF2$Radius)),by=list(Soil_moisture=DF1$Class_1),FUN=function(x)(sum(x,na.rm=T)))
-SM$area.msq<-pi*SM$x
-
-
-
-
-
-A<-coordinates(a[[1]])
-A[1
-]
-
-coordinates(A)<-c("coords.x1","coords.x2")
-CRS=CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-proj4string(ANFR_IDF)=CRS
-
-ANFR_IDF <- spTransform(ANFR_IDF,CRS)
-
-
-
-z<-gBuffer(A,width =as.numeric(as.character(DF1$Radius[1])),byid=T)
-
-z1<-SpatialPolygonsDataFrame(z,data=z@data)
