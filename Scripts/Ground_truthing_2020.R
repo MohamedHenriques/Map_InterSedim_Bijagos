@@ -634,15 +634,15 @@ beginCluster()
 
 #### kmeans classification Urok 4 classes
 set.seed(3)
-E_wet_Urok<-kmeans(values1_wet_Urok[sel,],3,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
+E_wet_Urok<-kmeans(values1_wet_Urok[sel,],5,iter.max=1000,nstart=25,algorithm="Hartigan-Wong",trace=T)
 E_wet_Urok
 E_wet_Urok$ifault
 
 kmeans_raster_wet_Urok<-setValues(wet_Urok[[1]],NA)
 kmeans_raster_wet_Urok[sel]<-E_wet_Urok$cluster
 
-plot(kmeans_raster_wet_Urok,col=rev(brewer.pal(3, "Paired")),main="kmeans 3 wet Urok 20200105",colNA=NA,axis.args=list(at=1:3,labels=1:3))
-writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_3_wet_Urok_20200116.tif",format="GTiff",overwrite=T)
+plot(kmeans_raster_wet_Urok,col=rev(brewer.pal(5,"Paired")),main="kmeans 5 wet Urok 20200105",colNA=NA,axis.args=list(at=1:5,labels=1:5))
+writeRaster(kmeans_raster_wet_Urok,"Data_out/Kmeans/kmeans_5_wet_Urok_20200116.tif",format="GTiff",overwrite=T)
 
 endCluster()
 
