@@ -137,7 +137,7 @@ GT_Final<-merge(GT,Gra_Final,by="Point",all.x=F,all.y=T)
 GT_Final$Sed_class<-substr(GT_Final$Sediment,1,11)
 
 plot(GT_Final,col="red")
-writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201113",driver="ESRI Shapefile",overwrite=T)
+#writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201113",driver="ESRI Shapefile",overwrite=T)
 
 View(GT_Final@data)
 
@@ -150,7 +150,7 @@ ggplot(GT_Final@data,aes(x=Class_2,y=Sed_class))+
 ggplot(GT_Final@data,aes(x=Class_3,y=mud,col=Class_2))+
   #geom_point(size=3.5)+
   stat_summary(size=1,na.rm=F)+
-  scale_x_discrete(limits=c("NA","uca","macro_uca"))
+  scale_x_discrete(limits=c(NA,"uca","macro_uca"))
 
 ggplot(GT_Final@data,aes(x=Sed_class,y=Mean.fw.phi,col=Class_2))+
   #geom_point(size=2,position=position_jitter(width=.1, height=0))+
