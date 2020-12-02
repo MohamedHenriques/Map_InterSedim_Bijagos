@@ -2,16 +2,18 @@ setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github
 rm(list=ls())
 graphics.off()
 
+
 ## Pacotes
 packs<-c("raster","ggplot2","rgdal","viridis","sp","RColorBrewer","scales","tools","rgeos","xlsx","spatstat","G2Sd","reshape2")
 lapply(packs,require,character.only=T)
 
 ##Load granulometry data
-Gra<-read.xlsx("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201113_OK.XLSX",1)
+Gra<-read.xlsx("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201126_OK.xlsx",1)
+
 str(Gra)
 colnames(Gra)[3:7]<-c(2000,500,250,63,0)
 
-Gra1<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==242),c(1,3:7)] # clean database 
+Gra1<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549 | Gra$Sed_ID==3819),c(1,3:7)] # clean database 
 #Gra11<-Gra[-which(Gra$Sed_ID==242),]
 ##Transpose dataframe
 a<-melt(Gra1,id.vars = "Sed_ID")
@@ -22,7 +24,7 @@ Gra3<-Gra2[,-1]
 #colnames(Gra3)<-paste("X",colnames(Gra3),sep="_")
 
 ###Data with percent for ploting
-Gra11<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==242),c(1,8:12)] # clean database 
+Gra11<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549),c(1,8:12)] # clean database 
 
 aa<-melt(Gra11,id.vars = "Sed_ID")
 Gra22<-dcast(aa,variable~Sed_ID,fun.aggregate = mean)
@@ -72,11 +74,11 @@ cor.test(G4$mud,G4$Mean.fw.phi)
 G4$Sed_ID<-as.numeric(gsub("X","",G4$sedID))
 
 G5<-G4[order(G4$Sed_ID),]
-Gra11<-Gra1[order(Gra1$Sed_ID),]
+Gra111<-Gra1[order(Gra1$Sed_ID),]
 
 #which(G5$Sed_ID!=Gra11$Sed_ID)
 
-Gra_F<-merge(Gra11,G5,all.x=T,all.y=T)
+Gra_F<-merge(Gra111,G5,all.x=T,all.y=T)
 
 #write.table(Gra_F,"Data_out/db/sediment_stats_20201113.csv",row.names=F,sep=";")
 
@@ -104,7 +106,7 @@ ggplot(Gra_F1,aes(x=Gra_F1$'0',y=Mean.fw.phi))+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
 
-################ Satellite part now
+################ shapefile part now
 
 ## Load GNB shape
 #GNB<-readOGR("./Shapefiles/GNB/gnb_poly.shp")
@@ -130,86 +132,95 @@ AA<-data.frame(table(Gra_F$Point))
 AA[AA$Freq > 1,]
 
 ###quick fix, deal with this sediment duplication later - check Gra_F dor the index row to delete - it changes with every new db
-Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3346)
+Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
 GT_Final<-merge(GT,Gra_Final,by="Point",all.x=F,all.y=T)
 
-GT_Final$Sed_class<-substr(GT_Final$Sediment,1,11)
+GT_Final$Sed_class<-substr(GT_Final$Sediment,1,regexpr(",",GT_Final$Sediment)-1)
+GT_Final$Sed_class1<-factor(GT_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
+GT_Final$Class_22<-factor(GT_Final$Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
+
+length(unique(GT$Point))
+length(unique(Gra_Final$Point))
+length(unique(GT_Final$Point))
+
+ID_GT<-as.numeric(as.character(unique(GT$Point)))
+ID_Gra<-as.numeric(as.character(unique(Gra_Final$Point)))
+ID_GT_Final<-as.numeric(as.character(unique(GT_Final$Point)))
+
+###These sed IDs are from Adonga, which is not in the used GT polygon shapefile
+setdiff(ID_Gra,ID_GT_Final)
+setdiff(ID_Gra,ID_GT)
 
 plot(GT_Final,col="red")
-#writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201113",driver="ESRI Shapefile",overwrite=T)
+writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201126",driver="ESRI Shapefile",overwrite=F)
 
 View(GT_Final@data)
 
 
-ggplot(GT_Final@data,aes(x=Class_2,y=Sed_class))+
+ggplot(GT_Final@data,aes(x=Class_22,y=Sed_class1))+
   geom_point(size=3.5)+
   #stat_summary(size=1)+
   scale_x_discrete(limits=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
 
-ggplot(GT_Final@data,aes(x=Class_3,y=mud,col=Class_2))+
+ggplot(GT_Final@data,aes(x=Class_3,y=mud,col=Class_22))+
   #geom_point(size=3.5)+
-  stat_summary(size=1,na.rm=F)+
+  stat_summary(size=0.7,na.rm=F, position = position_dodge(width = 0.2))+
   scale_x_discrete(limits=c(NA,"uca","macro_uca"))
 
-ggplot(GT_Final@data,aes(x=Sed_class,y=Mean.fw.phi,col=Class_2))+
+ggplot(GT_Final@data,aes(x=Sed_class1,y=Mean.fw.phi,col=Class_22))+
   #geom_point(size=2,position=position_jitter(width=.1, height=0))+
-  stat_summary(size=1,position=position_jitter(width=.1, height=0))+
-  scale_x_discrete(limits=c("Medium Sa","Fine Sand","Very Fine"))
+  stat_summary(size=1,position = position_dodge(width = 0.5))
 
-ggplot(GT_Final@data,aes(x=Class_2,y=mud))+
+ggplot(GT_Final@data,aes(x=Class_22,y=mud))+
   geom_point(size=1)+
-  stat_summary(size=1)+
-  scale_x_discrete(limits=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
+  stat_summary(size=1)
 
-ggplot(GT_Final@data,aes(x=Class_2,y=Sed_class,col=GT_Final$`D50(um)`))+
-  geom_point(size=2,position=position_jitter(width=.2, height=.2))+
-  #stat_summary(size=1)+
-  scale_x_discrete(limits=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))+
-  scale_y_discrete(limits=c("Medium Sa","Fine Sand","Very Fine"))
+ggplot(GT_Final@data,aes(x=Class_22,y=Sed_class1,col=GT_Final$`D50(um)`))+
+  geom_point(size=2,position=position_dodge(width=.2))
+  #stat_summary(size=1)
 
-ggplot(GT_Final@data,aes(x=Sed_class,y=mud))+
+ggplot(GT_Final@data,aes(x=Sed_class1,y=mud))+
   geom_point(size=1)+
-  stat_summary(size=1)+
-  scale_x_discrete(limits=c("Medium Sa","Fine Sand","Very Fine"))
+  stat_summary(size=1)
 
 
 ### Um pouco de estatítica
 
 ##### Diferenças na percentagem de mud entre as classes definidas no campo
-test1<-aov(mud~Class_2,data=GT_Final@data)
+test1<-aov(mud~Class_22,data=GT_Final@data)
 summary(test1)
 
 TukeyHSD(test1)
 
 ##### Diferenças na percentagem de mud entre as classes do gradistat
-test2<-aov(mud~Sed_class,data=GT_Final@data)
+test2<-aov(mud~Sed_class1,data=GT_Final@data)
 summary(test2)
 
 TukeyHSD(test2)
 
 ##### Diferenças no phi entre as classes definidas no campo
-test3<-aov(Mean.fw.phi~Class_2,data=GT_Final@data)
+test3<-aov(Mean.fw.phi~Class_22,data=GT_Final@data)
 summary(test3)
 
 TukeyHSD(test3)
 
 
-##### Diferenças no phi entre as classes do gradistat
-test4<-aov(Mean.fw.phi~Sed_class,data=GT_Final@data)
+##### Diferenças no phi entre as classes do gradistat (so para ver se o gajo esta a fazer o que diz que está a fazer)
+test4<-aov(Mean.fw.phi~Sed_class1,data=GT_Final@data)
 summary(test4)
 
 TukeyHSD(test4)
 
 ##### Diferenças no median grain size distribution entre as classes definidas no campo
-test5<-aov(GT_Final$`D50(um)`~Class_2,data=GT_Final@data)
+test5<-aov(GT_Final$`D50(um)`~Class_22,data=GT_Final@data)
 summary(test5)
 
 TukeyHSD(test5)
 
 
 ##### Diferenças no median grain size distribution entre as classes do gradistat
-test6<-aov(GT_Final$`D50(um)`~Sed_class,data=GT_Final@data)
+test6<-aov(GT_Final$`D50(um)`~Sed_class1,data=GT_Final@data)
 summary(test6)
 
 TukeyHSD(test6)

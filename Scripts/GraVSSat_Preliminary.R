@@ -6,7 +6,7 @@ packs<-c("RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluste
 lapply(packs,require,character.only=T)
 
 ## Load polygons with info on concluded sediment so far 20201113
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201113.shp")
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp")
 
 plot(GT,col="red")
 
@@ -25,9 +25,9 @@ plot(bat_Urok)
 ## Mask bathymetry
 ### Urok
 #### resample mask to allow use with bat image
-mask_urok_bat_r<-resample(mask_urok,bat_Urok,method="bilinear")
+#mask_urok_bat_r<-resample(mask_urok,bat_Urok,method="bilinear")
 #plot(mask_urok_bat_r,col=magma(2),colNA=1)
-Intertidal_bat_urok<-bat_Urok*mask_urok_bat_r
+#Intertidal_bat_urok<-bat_Urok*mask_urok_bat_r
 
 
 ## Load other images
