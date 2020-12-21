@@ -4,27 +4,27 @@ graphics.off()
 
 
 ## Pacotes
-packs<-c("raster","ggplot2","rgdal","viridis","sp","RColorBrewer","scales","tools","rgeos","xlsx","spatstat","G2Sd","reshape2")
+packs<-c("data.table","raster","ggplot2","rgdal","viridis","sp","RColorBrewer","scales","tools","rgeos","xlsx","spatstat","G2Sd","reshape2")
 lapply(packs,require,character.only=T)
 
 ##Load granulometry data
-Gra<-read.xlsx("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201126_OK.xlsx",1)
+Gra<-fread("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201126_OK.csv")
 
 str(Gra)
-colnames(Gra)[3:7]<-c(2000,500,250,63,0)
 
-Gra1<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549 | Gra$Sed_ID==3819),c(1,3:7)] # clean database 
-#Gra11<-Gra[-which(Gra$Sed_ID==242),]
-##Transpose dataframe
+Gra1<-Gra[!(Sed_ID==100 | Sed_ID==700 | Sed_ID==3346 | Sed_ID==3549 | Sed_ID==3819),c(1,3:7)] # clean database 
+colnames(Gra1)[2:6]<-c(2000,500,250,63,0) # to use in gradistat
+
+##reshape from long to wide
 a<-melt(Gra1,id.vars = "Sed_ID")
 Gra2<-dcast(a,variable~Sed_ID,fun.aggregate = mean)
-Gra2$variable<-c(2000,500,250,63,0)
-rownames(Gra2)<-Gra2$variable
+
+rownames(Gra2)<-as.character(Gra2$variable)
 Gra3<-Gra2[,-1]
 #colnames(Gra3)<-paste("X",colnames(Gra3),sep="_")
 
 ###Data with percent for ploting
-Gra11<-Gra[-which(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549),c(1,8:12)] # clean database 
+Gra11<-Gra[!(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549),c(1,8:12)] # clean database 
 
 aa<-melt(Gra11,id.vars = "Sed_ID")
 Gra22<-dcast(aa,variable~Sed_ID,fun.aggregate = mean)
@@ -41,67 +41,65 @@ Gra66<-dcast(Gra55,Sed_ID~crivo,fun.aggregate = mean)
 ###Gradistat
 G<-granstat(Gra3)
 
-sedID<-data.frame(colnames(G))
-sedID$order<-c(1:length(colnames(G)))
-sedID1<-dcast(sedID,"colnames.G."~order,value.var="colnames.G.")
+sedID<-data.table(Sed_ID=colnames(G))
+sedID[,order:=1:length(colnames(G))]
+
+sedID1<-dcast.data.table(sedID,"Sed_ID"~order,value.var="Sed_ID")
 sedID2<-sedID1[,-1]
 names(sedID2)<-colnames(G)
 
 G1<-rbind(G,sedID2)
-G1$stat<-rownames(G1)
-rownames(G1)[length(G1[,1])]<-"SedID"
+G1[,stat:=c(rownames(G),"SedID")]
+
+#rownames(G1)[length(G1[,1])]<-"SedID"
 
 G2<-melt(G1,id.vars = "stat")
 colnames(G2)[2]<-c("sedID")
-G3<-G2[which(G2$stat=="Mean.fw.um"|G2$stat=="Mean.fw.phi"|G2$stat=="Sediment"|G2$stat=="D50(um)"|G2$stat=="Texture"|G2$stat=="mud"|G2$stat=="Sand"),]
-G4<-dcast(G3,sedID~stat)
-G4$mud<-as.numeric(G4$mud)
-G4$`D50(um)`<-as.numeric(G4$`D50(um)`)
-G4$Mean.fw.phi<-as.numeric(G4$Mean.fw.phi)
-G4$Mean.fw.um<-as.numeric(G4$Mean.fw.um)
-G4$Sand<-as.numeric(G4$Sand)
+G3<-G2[stat=="Mean.fw.um"|stat=="Mean.fw.phi"|stat=="Sediment"|stat=="D50(um)"|stat=="Texture"|stat=="mud"|stat=="Sand"]
+G4<-dcast.data.table(G3,sedID~stat)
+str(G4)
+G5<-G4[,lapply(.SD,as.numeric),by=.(sedID,Sediment,Texture)]
 
 
-ggplot(G4,aes(x=mud,y=Mean.fw.phi))+
+ggplot(G5,aes(x=mud,y=Mean.fw.phi))+
   geom_point(size=2.5)+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
 
-cor.test(G4$mud,G4$Mean.fw.phi)
+cor.test(G5$mud,G5$Mean.fw.phi)
 
 
-###
-G4$Sed_ID<-as.numeric(gsub("X","",G4$sedID))
+###Create a new sed id code without the x in the names
+G5[,Sed_ID:=as.numeric(gsub("X","",sedID))]
+G6<-setorder(G5,Sed_ID)
 
-G5<-G4[order(G4$Sed_ID),]
-Gra111<-Gra1[order(Gra1$Sed_ID),]
+Gra111<-setorder(Gra1,Sed_ID)
 
-#which(G5$Sed_ID!=Gra11$Sed_ID)
+#which(G6$Sed_ID!=Gra111$Sed_ID)
 
-Gra_F<-merge(Gra111,G5,all.x=T,all.y=T)
+Gra_F<-merge(Gra111,G6,all=T)
 
 #write.table(Gra_F,"Data_out/db/sediment_stats_20201113.csv",row.names=F,sep=";")
 
-Gra_F1<-merge(Gra66,G5,all.x=T,all.y=T)
+Gra_F1<-merge(Gra66,G5,all=T)
 
 
-
-ggplot(Gra_F1,aes(x=Gra_F1$'500',y=Mean.fw.phi))+
+ggplot(Gra_F1,aes(x=`500`,y=Mean.fw.phi))+
   geom_point(size=2.5)+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
 
-ggplot(Gra_F1,aes(x=Gra_F1$'250',y=Mean.fw.phi))+
+ggplot(Gra_F1,aes(x=`250`,y=Mean.fw.phi))+
   geom_point(size=2.5)+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
 
-ggplot(Gra_F1,aes(x=Gra_F1$'63',y=Mean.fw.phi))+
+ggplot(Gra_F1,aes(x=`63`,y=Mean.fw.phi))+
   geom_point(size=2.5)+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
 
-ggplot(Gra_F1,aes(x=Gra_F1$'0',y=Mean.fw.phi))+
+ggplot(Gra_F1,aes(x=`0`,y=Mean.fw.phi))+
   geom_point(size=2.5)+
   stat_smooth(method=lm,se=F,lwd=1,fullrange = F)+
   theme_bw()
@@ -125,16 +123,18 @@ plot(GT, col="red")
 #GT_DF<-GT@data
 #str(GT_DF)
 
-Gra_F$Point<-as.factor(Gra_F$Sed_ID)
+Gra_F[,Point:=as.factor(Sed_ID)]
 
 ###Check for duplicated ID
 AA<-data.frame(table(Gra_F$Point))
 AA[AA$Freq > 1,]
 
 ###quick fix, deal with this sediment duplication later - check Gra_F dor the index row to delete - it changes with every new db
-Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
+Gra_Final<-unique(Gra_F,by="Point")
+#Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
 GT_Final<-merge(GT,Gra_Final,by="Point",all.x=F,all.y=T)
+plot(GT_Final)
 
 GT_Final$Sed_class<-substr(GT_Final$Sediment,1,regexpr(",",GT_Final$Sediment)-1)
 GT_Final$Sed_class1<-factor(GT_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
@@ -153,7 +153,7 @@ setdiff(ID_Gra,ID_GT_Final)
 setdiff(ID_Gra,ID_GT)
 
 plot(GT_Final,col="red")
-writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201126",driver="ESRI Shapefile",overwrite=F)
+writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201126",driver="ESRI Shapefile",overwrite=T)
 
 View(GT_Final@data)
 
