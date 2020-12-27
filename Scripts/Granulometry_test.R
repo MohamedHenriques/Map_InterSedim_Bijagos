@@ -133,7 +133,7 @@ AA[AA$Freq > 1,]
 Gra_Final<-unique(Gra_F,by="Point")
 #Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
-GT_Final<-merge(GT,Gra_Final,by="Point",all.x=F,all.y=T)
+GT_Final<-merge(GT,Gra_Final,by="Point",all.y=T)
 plot(GT_Final)
 
 GT_Final$Sed_class<-substr(GT_Final$Sediment,1,regexpr(",",GT_Final$Sediment)-1)

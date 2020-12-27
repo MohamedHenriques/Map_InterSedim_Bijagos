@@ -16,18 +16,18 @@ plot(GT)
 bat<-raster("D:/Work/FCUL/Doutoramento/Joao_Belo/Exposure_model/tempo_exposicao_Bijagos.tif")
 crs(bat)
 
-plot(bat)
+#plot(bat)
 
 ###Cut bat and GT polygons for Urok area
 Urok<-readOGR(dsn="Shapefiles/Urok_shape",layer="Urok_shapes")
 crs(Urok)<-crs(bat)
-plot(Urok, add=T, col="red")
+#plot(Urok, add=T, col="red")
 
 bat_Urok<-crop(bat,Urok)
-plot(bat_Urok)
+#plot(bat_Urok)
 
 GT_Urok<-crop(GT,Urok)
-plot(GT_Urok, col="red", add=T)
+plot(GT_Urok, col="red", add=F)
 
 
 ## Mask bathymetry
@@ -81,6 +81,6 @@ m1<-m[-1,] ###remove first row of NAs
 
 unique(m1$Point)
 
-#write.table(m1,"Data_out/db/GraVSSat_db_20201221.csv",row.names=F,sep=";")
+write.table(m1,"Data_out/db/GraVSSat_db_20201221.csv",row.names=F,sep=";")
 
 
