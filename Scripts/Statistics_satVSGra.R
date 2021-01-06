@@ -78,13 +78,34 @@ corrplot(resr,type="upper",order="hclust",p.mat=resp,sig.level=0.05,insig="pch")
 ##################################################
 
 unique(db1$level0)
+db1[!Class_2=="water_body"]
+
 
 ############ Level 0: radar VH vs Class3
-ggplot(data=db1,aes(x=level0,y=S1_VH))+
+ggplot(data=db1[level0=="bare_sediment"][!Class_2=="water_body"],aes(x=c_water,y=MI,col=Class_1))+
   #geom_boxplot()+
-  #geom_point(position=position_jitter(width=.3, height=0), col="red")+
-  stat_summary(size=1)+
+  geom_point(position=position_jitter(width=.3, height=0))+
+  #stat_summary(size=1)+
+  scale_x_continuous(breaks=seq(0,100,10))+
+  stat_summary(fun=mean,geom="point",size=4,position=position_dodge(width=2))+
+  stat_summary(fun.data=mean_sdl,fun.args=list(mult=1),geom="errorbar",width=0.2,position=position_dodge(width=2))+
   theme_bw()
+
+db2<-db1[level0=="shell"]
+db2[c_shlls<=20,unique(Point)]
+
+hist(db2$c_shlls,breaks=50)
+
+db3<-db2[c_water==80&MI<0.4]
+unique(db3$Point)
+
+db4<-db2[c_water==80&MI>0.4]
+unique(db4$Point)
+
+
+ggplot(db1[level0=="bare_sediment"][!Class_2=="water_body"],aes(x=mNDWI))+
+  geom_histogram(bins=100)
+
 
 ############ Level 0: radar VV vs Class3
 ggplot(data=db1,aes(x=level0,y=S1_VV))+
