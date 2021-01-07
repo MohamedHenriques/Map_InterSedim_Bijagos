@@ -6,7 +6,9 @@ packs<-c("sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomFo
 lapply(packs,require,character.only=T)
 
 ## Load exposure model
-bat<-raster("D:/Work/FCUL/Doutoramento/Joao_Belo/Exposure_model/tempo_exposicao_Bijagos.tif")
+bat<-raster("D:/Work/FCUL/Doutoramento/Digital elevation and exposure time model/dem_0_5.tif")
 crs(bat)
 
 plot(bat)
+
+
