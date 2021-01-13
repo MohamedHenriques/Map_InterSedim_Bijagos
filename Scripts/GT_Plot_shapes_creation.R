@@ -3,7 +3,7 @@ rm(list=ls())
 graphics.off()
 
 ## Pacotes
-packs<-c("raster","ggplot2","rgdal","viridis","sp","RColorBrewer","scales","tools","rgeos","xlsx","spatstat")
+packs<-c("raster","ggplot2","rgdal","viridis","sp","RColorBrewer","scales","tools","rgeos","xlsx","spatstat","beepr")
 lapply(packs,require,character.only=T)
 
 
@@ -50,14 +50,14 @@ coord_final<-cbind(coord_id,coord)
 which(coord_final$coord_id==61)
 
 ## Read database
-DF<-read.table("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/gt_total_20201111_bub_urok_adonga.csv",header=T,sep=";")
+DF<-read.table("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/poly_GT_final_20200111.csv",header=T,sep=";")
 str(DF)
 
 DF$Point<-as.character(DF$Point) #to allow it to merge well with the spatial points id. Factors suck, they have levels and shit
 
-DF0<-DF[-which(DF$Site=="Adonga"),]
+#DF0<-DF[-which(DF$Site=="Adonga"),] #new dataframe doesnt have Adonga data
 
-DF1<-merge(DF0,coord_final,by.x="Point",by.y="coord_id",all.x=T,all.y=T)
+DF1<-merge(DF,coord_final,by.x="Point",by.y="coord_id",all.x=T,all.y=T)
 str(DF1)
 names(DF1)[names(DF1)==c("coords.x1","coords.x2")]<-c("lon","lat")
 colnames(DF1)
@@ -104,7 +104,7 @@ which(coord_final_b$coord_id_b==61)
 
 ## Remerge 
 
-DF2<-merge(DF0,coord_final_b,by.x="Point",by.y="coord_id_b",all.x=T,all.y=T)
+DF2<-merge(DF,coord_final_b,by.x="Point",by.y="coord_id_b",all.x=T,all.y=T)
 str(DF2)
 names(DF2)[names(DF2)==c("coords.x1","coords.x2")]<-c("lon","lat")
 colnames(DF2)
@@ -118,8 +118,12 @@ which(duplicated(DF2$Point))
 
 
 ## Plot points to check them
-ggplot(DF2,aes(x=lon,y=lat, colour=factor(DF2$ï..Day)))+
-  geom_point()
+GNB2<-fortify(GNB1)
+
+ggplot()+
+  geom_polygon(data=GNB2,aes(x=long,y=lat,group=group), fill="lightgrey")+
+  geom_point(data=DF2,aes(x=lon,y=lat,colour=factor(Day)))+
+  theme_bw()
   
 ## aggregate database with points
 
@@ -139,5 +143,5 @@ plot(poly_GT[which(poly_GT$Point=="3333100"),], col="red")
 
 plot(poly_GT[which(poly_GT$Point=="3323100"|poly_GT$Point=="3333100"),], col=c("blue","red"))
 
-writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT_20201114",driver="ESRI Shapefile",overwrite=F)
+writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT_20210113",driver="ESRI Shapefile",overwrite=F)
 
