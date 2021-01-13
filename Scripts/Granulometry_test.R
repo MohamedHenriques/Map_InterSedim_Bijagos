@@ -114,7 +114,7 @@ ggplot(Gra_F1,aes(x=`0`,y=Mean.fw.phi))+
 #crs(GNB1)
 
 
-GT<-readOGR("./Data_out/Polygons/poly_GT_20201114.shp")
+GT<-readOGR("./Data_out/Polygons/poly_GT_20210113.shp")
 
 #plot(GNB1)
 plot(GT, col="red")
@@ -153,7 +153,7 @@ setdiff(ID_Gra,ID_GT_Final)
 setdiff(ID_Gra,ID_GT)
 
 plot(GT_Final,col="red")
-writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20201126",driver="ESRI Shapefile",overwrite=T)
+writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210113",driver="ESRI Shapefile",overwrite=F)
 
 View(GT_Final@data)
 
