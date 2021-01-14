@@ -64,43 +64,23 @@ beep()
 
 plot(S2_20200204)
 
-## Cut images with mask (when necessary)
+## Check extebt of images to prepare tp stack all together
 
 extent(bat)==extent(intmask)
 extent(S2_20200204)==extent(intmask)
 extent(S1_c)==extent(intmask)
 
-
-S1_cc<-crop(S1_c,intmask)
-extent(S1_cc)==extent(intmask)
-
+## Resample sat image to enable stacking
 S1_cr<-resample(S1_c,intmask,method="bilinear")
+plot(S1_cr)
+extent(S1_cr)==extent(intmask)
 
+##Stack images
+all<-stack(S2_20200204,S1_cr,bat)
+plot(all)
 
-
-
-
-
-
-
-
-
-all_Urok<-stack("Data_out/Stack/stack_all_Urok.tif")
-names(all_Urok)
-nam<-c("B02","B03","B04","B05","B06","B07","B08","B08a","B09","B11","B12","S1_VH","S1_VV","bat_Urok1")
-names(all_Urok)<-nam
-plot(all_Urok)
-
-### Resample new bat to enable to be stacked to the rest of the images
-extent(bat_Urok)==extent(all_Urok[[14]])
-bat_Urok2<-resample(bat_Urok,all_Urok[[14]])
-extent(bat_Urok2)==extent(all_Urok[[14]])
-plot(bat_Urok2)
-
-all_Urok1<-stack(all_Urok,bat_Urok2)
-plot(all_Urok1[[2]])
-plot(GT_Urok,col="red",add=T)
-
+## mask intertidal area
+all_m<-mask(all,intmask)
 
 ## Extract values only for Urok
 beginCluster(7)
