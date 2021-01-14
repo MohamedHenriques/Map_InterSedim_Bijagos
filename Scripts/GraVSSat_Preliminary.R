@@ -7,16 +7,15 @@ lapply(packs,require,character.only=T)
 
 ## Load polygons with info on concluded sediment so far 20201113
 #system.time(GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp"))
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp") # much faster this way
-
-plot(GT)
-
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # much faster this way
+#plot(GT)
 
 ## Load exposure model
-bat<-raster("D:/Work/FCUL/Doutoramento/Joao_Belo/Exposure_model/tempo_exposicao_Bijagos.tif")
+bat<-raster("D:/Work/FCUL/Doutoramento/Digital elevation and exposure time model/dem_104_469.tif")
 crs(bat)
-
 #plot(bat)
+
+#########Jump this, since we're aiming to do this for all the area now ##############################################
 
 ###Cut bat and GT polygons for Urok area
 Urok<-readOGR(dsn="Shapefiles/Urok_shape",layer="Urok_shapes")
@@ -28,7 +27,10 @@ bat_Urok<-crop(bat,Urok)
 
 GT_Urok<-crop(GT,Urok)
 plot(GT_Urok, col="red", add=F)
-
+######################################################################################################################
+### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
+intmask<-raster("Data_out/mask/final_mask_20210113.tif")
+plot(intmask,colNA=1)
 
 ## Mask bathymetry
 ### Urok
@@ -39,6 +41,50 @@ plot(GT_Urok, col="red", add=F)
 
 
 ## Load other images
+###Load S1 image
+s1_20200128<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200128_1917/S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.tif")
+plot(s1_20200128)
+
+S1_c<-crop(s1_20200128,intmask)
+names(S1_c)<-c("S1_20200128_VH","S1_20200128_VV")
+plot(S1_c)
+
+
+##Load S2 images 20200204
+path<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bubaque/im_20200204/2A"
+files<-list.files(path=path,pattern=".tif")
+S2_20200204<-raster(paste(path,files[1],sep="/"))
+
+for(i in 2:length(files)) {
+    S2_20200204<-stack(S2_20200204,paste(path,files[i],sep="/"))
+  }
+
+S2_20200204
+beep()
+
+plot(S2_20200204)
+
+## Cut images with mask (when necessary)
+
+extent(bat)==extent(intmask)
+extent(S2_20200204)==extent(intmask)
+extent(S1_c)==extent(intmask)
+
+
+S1_cc<-crop(S1_c,intmask)
+extent(S1_cc)==extent(intmask)
+
+S1_cr<-resample(S1_c,intmask,method="bilinear")
+
+
+
+
+
+
+
+
+
+
 all_Urok<-stack("Data_out/Stack/stack_all_Urok.tif")
 names(all_Urok)
 nam<-c("B02","B03","B04","B05","B06","B07","B08","B08a","B09","B11","B12","S1_VH","S1_VV","bat_Urok1")
