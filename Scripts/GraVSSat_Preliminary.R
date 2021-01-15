@@ -8,12 +8,13 @@ lapply(packs,require,character.only=T)
 ## Load polygons with info on concluded sediment so far 20201113
 #system.time(GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp"))
 GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # much faster this way
-#plot(GT)
+#plot(GT, add=F, col="red")
 
 ## Load exposure model
 bat<-raster("D:/Work/FCUL/Doutoramento/Digital elevation and exposure time model/dem_104_469.tif")
 crs(bat)
 #plot(bat)
+
 
 #########Jump this, since we're aiming to do this for all the area now ##############################################
 
@@ -39,6 +40,9 @@ plot(intmask,colNA=1)
 #plot(mask_urok_bat_r,col=magma(2),colNA=1)
 #Intertidal_bat_urok<-bat_Urok*mask_urok_bat_r
 
+### Crop GT to keep only points in the available scene
+GT_c<-crop(GT,intmask)
+plot(GT_c)
 
 ## Load other images
 ###Load S1 image
@@ -80,33 +84,41 @@ all<-stack(S2_20200204,S1_cr,bat)
 plot(all)
 
 ## mask intertidal area
-all_m<-mask(all,intmask)
-
-## Extract values only for Urok
 beginCluster(7)
-system.time(DF<-extract(all_Urok1,GT_Urok,cellnumbers=T,df=F,factors=T,nl=15,na.rm=T))
+all_m<-mask(all,intmask)
+endCluster()
+beep()
+
+plot(all_m)
+
+## Extract values 
+beginCluster(7)
+system.time(DF<-extract(all_m,GT_c,cellnumbers=T,df=F,factors=T,nl=15,na.rm=T))
 beep()
 endCluster()
+
+
 
 ##Remove points that do not fall into Urok area
 #names(DF)<-seq_along(DF)
 #DF1<-Filter(Negate(is.null), DF)
 Point<-seq_along(DF)
 
-
-n<-c(colnames(DF[[1]]),colnames(GT_Urok@data))
+###Unpack list and ppend it to a data frame
+n<-c(colnames(DF[[1]]),colnames(GT_c@data))
 m<-matrix(data=NA,nrow=1,ncol=length(n))
 colnames(m)<-n
 
 for(i in Point) {
-  m<-rbind(m,cbind(DF[i],GT_Urok@data[i,]))
+  m<-rbind(m,cbind(DF[i],GT_c@data[i,]))
   print(paste(i,"done"))
 }
 
 m1<-m[-1,] ###remove first row of NAs
 
-unique(m1$Point)
+##Check for pixels that fall outside intertidal masked area
+unique(m1[is.na(m1$B02_20200204),"Point"])
 
-write.table(m1,"Data_out/db/GraVSSat_db_20201221.csv",row.names=F,sep=";")
+write.table(m1,"Data_out/db/GraVSSat_db_20210114.csv",row.names=F,sep=";")
 
 
