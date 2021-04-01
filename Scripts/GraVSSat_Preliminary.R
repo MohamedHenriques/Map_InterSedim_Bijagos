@@ -12,7 +12,7 @@ GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # much faster th
 
 ## Load exposure model
 bat<-raster("D:/Work/FCUL/Doutoramento/Digital elevation and exposure time model/dem_104_469.tif")
-crs(bat)
+#crs(bat)
 #plot(bat)
 
 
@@ -31,7 +31,7 @@ plot(GT_Urok, col="red", add=F)
 ######################################################################################################################
 ### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
 intmask<-raster("Data_out/mask/final_mask_20210113.tif")
-plot(intmask,colNA=1)
+#plot(intmask,colNA=1)
 
 ## Mask bathymetry
 ### Urok
@@ -42,16 +42,17 @@ plot(intmask,colNA=1)
 
 ### Crop GT to keep only points in the available scene
 GT_c<-crop(GT,intmask)
-plot(GT_c)
+#plot(GT_c)
+
 
 ## Load other images
 ###Load S1 image
 s1_20200128<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200128_1917/S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.tif")
-plot(s1_20200128)
+#plot(s1_20200128)
 
 S1_c<-crop(s1_20200128,intmask)
 names(S1_c)<-c("S1_20200128_VH","S1_20200128_VV")
-plot(S1_c)
+#plot(S1_c)
 
 
 ##Load S2 images 20200204
@@ -64,9 +65,10 @@ for(i in 2:length(files)) {
   }
 
 S2_20200204
-beep()
+names(S2_20200204)
+#beep()
 
-plot(S2_20200204)
+#plot(S2_20200204)
 
 ## Check extebt of images to prepare tp stack all together
 
@@ -76,12 +78,12 @@ extent(S1_c)==extent(intmask)
 
 ## Resample sat image to enable stacking
 S1_cr<-resample(S1_c,intmask,method="bilinear")
-plot(S1_cr)
+#plot(S1_cr)
 extent(S1_cr)==extent(intmask)
 
 ##Stack images
 all<-stack(S2_20200204,S1_cr,bat)
-plot(all)
+#plot(all)
 
 ## mask intertidal area
 beginCluster(7)
@@ -89,7 +91,23 @@ all_m<-mask(all,intmask)
 endCluster()
 beep()
 
-plot(all_m)
+##Create index layers
+NDWI<-(all_m$B03_20200204-all_m$B08_20200204)/(all_m$B03_20200204+all_m$B08_20200204)
+mNDWI<-(all_m$B03_20200204-all_m$B11_20200204)/(all_m$B03_20200204+all_m$B11_20200204)
+NDMI<-(all_m$B08_20200204-all_m$B11_20200204)/(all_m$B08_20200204+all_m$B11_20200204)
+NDMI1<-(all_m$B08A_20200204-all_m$B11_20200204)/(all_m$B08A_20200204+all_m$B11_20200204)
+beep()
+
+plot(NDWI)
+plot(mNDWI)
+plot(NDMI)
+plot(NDMI1)
+
+all_m1<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1)
+names(all_m1)[15:18]<-c("NDWI","mNDWI","NDMI","NDMI1")
+
+#plot(all_m1)
+writeRaster(all_m1,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
 
 ## Extract values 
 beginCluster(7)
