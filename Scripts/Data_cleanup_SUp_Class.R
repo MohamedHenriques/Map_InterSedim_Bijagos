@@ -19,28 +19,65 @@ str(df)
 df[,unique(site)]
 
 ###Adonga
-GT_adonga<-readOGR("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Adonga/Poligonos_GT/Poligonos_GT_total")
-plot(GT_adonga, add=T, col="green")
-View(GT_adonga@data)
-dfa<-data.table(GT_adonga@data)
-str(dfa)
+GT_adonga1<-readOGR("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Adonga/Poligonos_GT/Poligonos_GT_total/pols_Adonga_OK.shp")
+plot(GT_adonga1, add=T, col="red")
+#View(GT_adonga1@data)
+dfa<-data.table(GT_adonga1@data)
 
+dfa1<-fread("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/gt_total_20210401_bub_urok_adonga.csv")
+str(dfa1)
+dfa1_ad<-dfa1[Site=="Adonga"]
+dfa_f<-merge(dfa,dfa1_ad,by.x="name",by.y="Point",all.y=T)
+str(dfa_f)
+
+df_adonga<-dfa_f[,.(name,Day,Radius,Class_1,Class_2,Class_3,c_water,c_macrophyte,c_shells,c_rocks,c_channels,c_uca,uca_density,greeness.y,mangrove.y,sed_Id,obs.y,obs2,island,finos)]
+str(df_adonga)
+names(df_adonga)[1]<-"Point"
+names(df_adonga)[7:19]<-names(df)[7:19]
+df_adonga[,c(names(df)[20:37]):=NA]
+df_adonga[,c("mud","X0"):=finos]
+df_adonga1<-df_adonga[,!c("finos")]
+str(df_adonga1)
+names(df)==names(df_adonga1)
+
+GT_adonga_f<-merge(GT_adonga1,df_adonga1, by.x="name",by.y="Point", all.x=T)
+plot(GT_adonga_f)
+str(GT_adonga_f@data)
+cols<-c("name",names(df_adonga1)[-1])
+cols[17]<-"obs.y"
+GT_AD<-GT_adonga_f[,(names(GT_adonga_f) %in% cols)]
+names(GT_AD@data)[1]<-"Point"
+names(GT_AD@data)[17]<-"obs"
+names(GT_AD@data)==names(df)
+str(GT_AD@data)
+plot(GT_AD, col="red")
+
+###Merge Adonga to the rest of the GT poolygons
+names(GT@data)==names(GT_AD@data)
+
+GT_tot<-rbind(GT,GT_AD)
+#View(GT_tot@data)
+dff<-data.table(GT_tot@data)
 
 ### Crop GT to keep only points in the available scene
-GT_c<-crop(GT,sat)
+GT_c<-crop(GT_tot,sat)
 plot(GT_c)
 rm(GT) #Remove object no longer needed
 
 ###Check database
 str(GT_c@data)
 
-
 ###Correct class names
-DF0<-as.data.table(GT_c@data)
+DF0<-data.table(GT_c@data)
 str(DF0)
 
-##remove point 3129 (see observations on that data entry)
+DF0[Island=="Adonga",site:="Adonga"]
+DF0[Island=="Adonga",table(Class_3)]
+DF0[Island=="Adonga"&Class_3=="green_macroalgae"|Class_3=="green",Class_3:="macroalgae"]
+
+##remove point 3129 and 3128 (see observations on that data entry)
 DF<-DF0[!Point=="3129"]
+DF<-DF0[!Point=="3128"]
 
 ##Convert uca cover percentage into numeric
 DF[,c_uca:=as.numeric(as.character(c_uca))]
@@ -104,62 +141,69 @@ DF[,unique(cover_over)]
 ###checking percentage cover for each Class3
 
 DF[cover_over=="bare_sediment",table(c_shlls)]
-DF[cover_over=="uca",table(c_shlls)]
-DF[cover_over=="rock",table(c_shlls)]
-DF[cover_over=="shell",table(c_shlls)]
-DF[cover_over=="macroalgae",table(c_shlls)]
-DF[cover_over=="water_body",table(c_shlls)]
-DF[cover_over=="rock",table(c_shlls)]
-DF[cover_over=="shell",table(c_shlls)]
-
 DF[cover_over=="bare_sediment",table(c_rocks)]
-DF[cover_over=="uca",table(c_rocks)]
-DF[cover_over=="rock",table(c_rocks)]
-DF[cover_over=="shell",table(c_rocks)]
-DF[cover_over=="macroalgae",table(c_rocks)]
-DF[cover_over=="water_body",table(c_rocks)]
-DF[cover_over=="rock",table(c_rocks)]
-
 DF[cover_over=="bare_sediment",table(c_mcrph)]
-DF[cover_over=="uca",table(c_mcrph)]
-DF[cover_over=="rock",table(c_mcrph)]
-DF[cover_over=="shell",table(c_mcrph)]
-DF[cover_over=="macroalgae",table(c_mcrph)]
-DF[cover_over=="water_body",table(c_mcrph)]
-DF[cover_over=="uca",table(c_mcrph)]
-DF[cover_over=="macroalgae",table(c_mcrph)]
-
 DF[cover_over=="bare_sediment",table(c_uca)]
-DF[cover_over=="uca",table(c_uca)]
-DF[cover_over=="rock",table(c_uca)]
-DF[cover_over=="shell",table(c_uca)]
-DF[cover_over=="macroalgae",table(c_uca)]
-DF[cover_over=="water_body",table(c_uca)]
-
 DF[cover_over=="bare_sediment",table(c_water)]
+
+DF[cover_over=="uca",table(c_shlls)]
+DF[cover_over=="uca",table(c_rocks)]
+DF[cover_over=="uca",table(c_mcrph)]
+DF[cover_over=="uca",table(c_uca)]
 DF[cover_over=="uca",table(c_water)]
+DF[c_uca>=50,table(cover_over)]
+
+DF[cover_over=="rock",table(c_shlls)]
+DF[cover_over=="rock",table(c_rocks)]
+DF[cover_over=="rock",table(c_mcrph)]
+DF[cover_over=="rock",table(c_uca)]
 DF[cover_over=="rock",table(c_water)]
+DF[c_rocks>=30,table(cover_over)]
+
+DF[cover_over=="shell",table(c_shlls)]
+DF[cover_over=="shell",table(c_rocks)]
+DF[cover_over=="shell",table(c_mcrph)]
+DF[cover_over=="shell",table(c_uca)]
 DF[cover_over=="shell",table(c_water)]
+DF[c_shlls>=30,table(cover_over)]
+
+DF[cover_over=="macroalgae",table(c_shlls)]
+DF[cover_over=="macroalgae",table(c_rocks)]
+DF[cover_over=="macroalgae",table(c_mcrph)]
+DF[cover_over=="macroalgae",table(c_uca)]
 DF[cover_over=="macroalgae",table(c_water)]
+DF[c_mcrph>=30,table(cover_over)]
+
+
+DF[cover_over=="water_body",table(c_shlls)]
+DF[cover_over=="water_body",table(c_rocks)]
+DF[cover_over=="water_body",table(c_mcrph)]
+DF[cover_over=="water_body",table(c_uca)]
 DF[cover_over=="water_body",table(c_water)]
+DF[c_water>=85,table(cover_over)]
+DF[cover_over=="water_body"&c_mcrph>30]
+
 
 ##Clean up uca pixels
-DF[cover_over=="uca"&c_mcrph==70,cover_over:="macroalgae"]
+DF[cover_over=="uca"&c_mcrph>=50,cover_over:="macroalgae"]
 DF[cover_over=="uca",table(c_mcrph)]
+DF[cover_over=="uca"&c_mcrph>30]
 
 DF[cover_over=="uca"&c_uca==0,cover_over:="bare_sediment"] ##polygons labelled as uca with zero uca cover, so swhitched them to bare_sediment
 DF[cover_over=="uca"&c_uca==20,cover_over:="bare_sediment"]
 DF[cover_over=="uca"&c_uca==30,cover_over:="bare_sediment"]
+DF[cover_over=="bare_sediment"&c_uca>=50, cover_over:="uca"]
 
 ##Clean up macroalgae pixels
 DF[cover_over=="macroalgae"&c_mcrph<30,cover_over:="bare_sediment"]
-DF[cover_over=="macroalgae"&c_uca>=60&c_mcrph<80,cover_over:="uca"]
+DF[cover_over=="macroalgae"&c_uca>=50&c_mcrph<50,cover_over:="uca"]
 
 ##Clean up shells pixels
 DF[cover_over=="shell"&c_shlls<30,cover_over:="bare_sediment"]
 
 ##Clean up rock pixels
 DF[cover_over=="rock"&c_rocks<=40] ###point 63 has 0 for c_rocks, but see comment. WIll leave the point classified as rock for now
+DF[cover_over=="rock"&c_mcrph<=40&c_mcrph>0]
 
 ##Clean up bare_sediment pixels
 DF[cover_over=="bare_sediment"&c_shlls>=25, cover_over:="shell"]
@@ -171,8 +215,8 @@ DF[c_water>=85,cover_over:="water_body"]
 ###################################################
 #####Creating new columns for habitat types of level 0
 
-## Create new column to classify water body
-DF[,WB:=ifelse(c_water>=85,"water_body","other")]
+## Create new column to classify flooded areas
+DF[,WB:=ifelse(c_water>=30,"flooded","dry")]
 DF[,unique(WB)]
 
 
@@ -207,15 +251,21 @@ DF[,unique(shells)]
 
 DF[,sediment0:=ifelse(cover_over=="bare_sediment","bare_sediment",
                      ifelse(cover_over=="uca","uca",
-                      ifelse(cover_over=="water_body","waterbody",NA)))]
+                      ifelse(cover_over=="water_body","bare_sediment",NA)))]
 DF[,unique(sediment0)]
 
+DF[,bsed:=ifelse(cover_over=="bare_sediment","bare_sediment","other")]
+DF[,unique(bsed)]
+
+DF[,uca:=ifelse(cover_over=="uca","uca","other")]
+DF[,unique(uca)]
+
 ###Introduce new columns on polygons
-DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,rocks, macro,shells,sediment0,Point)]
+DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,rocks, macro,shells,sediment0,bsed,uca,Point)]
 
 GT_c1<-merge(GT_c,DF1,by="Point")
 plot(GT_c1)
-str(GT_c1@data)
+#str(GT_c1@data)
 
 writeOGR(GT_c1,"Data_out/Polygons",layer="GT_c1",driver = "ESRI Shapefile",overwrite_layer = T)
 

@@ -2,3 +2,13 @@ bare_sediment_mask.tif
 shells_mask.tif
 uca_mask.tif
 waterbody_mask.tif
+bare_sediment_mask_dry_valtot.tif
+bare_sediment_mask_valtot.tif
+bare_sediment_mask_wet_valtot.tif
+desktop.ini
+dry_mask_valtot.tif
+shells_mask_shell.tif
+uca_mask_dry_valtot.tif
+uca_mask_valtot.tif
+uca_mask_wet_valtot.tif
+wet_mask_valtot.tif
