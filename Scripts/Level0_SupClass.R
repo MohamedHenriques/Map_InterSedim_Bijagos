@@ -415,7 +415,48 @@ GT_c_l0_v_sed<-merge(GT_c1,L0_val_sed,by="Point",all.x=F,all.y=T)
 #writeRaster(sat_sed_wet,"Data_out/Stack/sat_sed_wet_valtot.tif",overwrite=T)
 
 sat_sed<-stack("Data_out/Stack/sat_sed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
+sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #Remaining area after isolating macro, rocks and shells
 beep(2)
+
+
+### ALL AREA (This is the best performing separation of bare sediment (including waterbody) vs uca. Used )
+set.seed(1111)
+beginCluster(7)
+SC1_sedmnt0<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_sed,responseCol="sedmnt0.y",valData=GT_c_l0_v_sed,polygonBasedCV=F,predict=T,
+                        predType="raw",filename="Data_out/Class_map/SC1_sedmnt0_valtot.tif")
+endCluster()
+beep(3)
+saveRSTBX(SC1_sedmnt0,"Data_out/models/SC1_sedmnt0",format = "raster",overwrite=T)
+SC1_sedmnt0<-readRSTBX("Data_out/models/SC1_sedmnt0.tif")
+
+
+plot(SC1_sedmnt0$map, colNA=1,main="Bare Sed VS Uca VS flooded sed")
+sedmnt0map<-SC1_sedmnt0$map
+SC1_sedmnt0$classMapping
+
+ad<-drawExtent()
+adp<-crop(SC1_sedmnt0$map,ad)
+plot(adp,colNA=1,col=c("white","red"))
+
+###Isolating bare sediment areas
+bare_sediment_mask<-sedmnt0map==1
+bare_sediment_mask[bare_sediment_mask==0]<-NA # turn wet area (coded zero) into NA
+plot(bare_sediment_mask, colNA=1)
+writeRaster(bare_sediment_mask,"Data_out/Habitat_classes/bare_sediment_mask_valtot.tif",overwrite=T)
+
+area_bare_sediment<-sum(bare_sediment_mask[bare_sediment_mask==1])*res(bare_sediment_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
+
+##Isolating uca sediment
+uca_mask<-sedmnt0map==2
+uca_mask[uca_mask==0]<-NA # turn wet area (coded zero) into NA
+plot(uca_mask, colNA=1)
+writeRaster(uca_mask,"Data_out/Habitat_classes/uca_mask_valtot.tif",overwrite=T)
+
+area_uca_mask<-sum(uca_mask[uca_mask==1])*res(uca_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
+
+
+
+
 
 ### DRY
 
@@ -551,8 +592,10 @@ GT_c_l0_v_bsed<-merge(GT_c1,L0_val_bsed,by="Point",all.x=F,all.y=T)
 
 ### Supervised class with rstoolbox and rf: bsed
 #mask_shells_others<-stack("Data_out/mask/mask_shells_others_valtot.tif")
+#mask_uca_others_valtot<-stack("Data_out/mask/mask_uca_others_valtot.tif")
 #sat_bsed<-mask(sat,mask_shells_others)
-#sat_bsed1<-mask(sat,mask_uca_others) #when isolating uca areas first and then bare sediment including waterbody
+#writeRaster(sat_bsed,"Data_out/Stack/sat_bsed_valtot.tif",overwrite=T)
+#sat_bsed1<-mask(sat,mask_uca_others_valtot) #when isolating uca areas first and then bare sediment including waterbody
 #writeRaster(sat_bsed1,"Data_out/Stack/sat_bsed1_valtot.tif",overwrite=T)
 #sat_bsed1<-stack("Data_out/Stack/sat_bsed1_valtot.tif") #made from remaining area after removing uca
 sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
@@ -561,7 +604,7 @@ beep(5)
 set.seed(111)
 beginCluster(7)
 SC1_bsed<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_bsed,responseCol="bsed.x",valData=GT_c_l0_v_bsed,polygonBasedCV=F,predict=T,
-                       predType="raw",filename="Data_out/Class_map/SC1_bsed_valtot.tif")
+                       predType="raw",filename=NULL)
 #SC1_bsed1<-superClass(img=sat_bsed1,model="rf",trainData=GT_c_l0_t_bsed1,responseCol="bsed1.x",valData=GT_c_l0_v_bsed1,polygonBasedCV=F,predict=T,
                      #predType="raw",filename="Data_out/Class_map/SC1_bsed_valtot.tif")
 endCluster()
@@ -613,13 +656,13 @@ L0_val_uca[,table(uca)]
 #L0_train1_uca<-L0_train_uca[,.(uca,Point)]
 
 GT_c_l0_t_uca<-merge(GT_c1,L0_train_uca,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t_uca,col="red")
+#plot(GT_c_l0_t_uca,col="red")
 #str(GT_c_l0_t@data)
 
 #L0_val1_uca<-L0_val_uca[,.(uca,Point)]
 
 GT_c_l0_v_uca<-merge(GT_c1,L0_val_uca,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v_uca)
+#plot(GT_c_l0_v_uca)
 #str(GT_c_l0_v@data)
 
 ### Supervised class with rstoolbox and rf: uca
@@ -635,6 +678,7 @@ SC1_uca<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_uca,responseCol=
                      predType="raw",filename="Data_out/Class_map/SC1_uca_valtot.tif")
 endCluster()
 beep(3)
+saveRSTBX(SC1_uca,"Data_out/models/SC1_uca",format="raster")
 
 plot(SC1_uca$map, colNA=1,main="Uca VS rest")
 ucamap<-SC1_uca$map

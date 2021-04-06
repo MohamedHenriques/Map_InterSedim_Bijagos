@@ -8,42 +8,78 @@ lapply(packs,require,character.only=T)
 
 ### Macroalgae
 macro_mask<- stack("Data_out/Habitat_classes/Level0/macro_mask_valtot.tif")
-plot(macro_mask, col="green",colNA=1)
-xx<-drawExtent()
-pp<-crop(macro_mask,xx)
-plot(pp, col="green",colNA=1)
+macro_mask1<-macro_mask
+macro_mask1[is.na(macro_mask1)]<-0
+#plot(macro_mask1,colNA=1)
 
+#plot(macro_mask1, col="green",colNA=1)
 
 
 ### Rocks
 rocks_mask<-stack("Data_out/Habitat_classes/Level0/rocks_mask_valtot.tif")
-plot(rocks_mask,col="yellow",colNA=1,add=T)
+rocks_mask1<-rocks_mask
+rocks_mask1[rocks_mask1==1]<-3
+rocks_mask1[is.na(rocks_mask1)]<-0
+
+#plot(rocks_mask,col="yellow",colNA=1,add=T)
 ### Shells
 shells_mask<-stack("Data_out/Habitat_classes/Level0/shells_mask_valtot.tif")
+shells_mask1<-shells_mask
+shells_mask1[shells_mask1==1]<-5
+shells_mask1[is.na(shells_mask1)]<-0
 
+#### without wet and dry
+### Uca sediment
+uca_mask<-stack("Data_out/Habitat_classes/uca_mask_valtot.tif")
+uca_mask1<-uca_mask
+uca_mask1[uca_mask1==1]<-7
+uca_mask1[is.na(uca_mask1)]<-0
+
+###Bare sediment without waterbody VS others
+bare_sediment_mask<-stack("Data_out/Habitat_classes/bare_sediment_mask_valtot.tif")
+bare_sediment_mask1<-bare_sediment_mask
+bare_sediment_mask1[bare_sediment_mask1==1]<-9
+bare_sediment_mask1[is.na(bare_sediment_mask1)]<-0
+
+######################################
 ### Dry Bare sediment
 bare_sediment_mask_dry<-stack("Data_out/Habitat_classes/bare_sediment_mask_dry_valtot.tif")
+bare_sediment_mask_dry1<-bare_sediment_mask_dry
+bare_sediment_mask_dry1[bare_sediment_mask_dry1==1]<-11
+bare_sediment_mask_dry1[is.na(bare_sediment_mask_dry1)]<-0
 
 ### Wet Bare sediment
 bare_sediment_mask_wet<-stack("Data_out/Habitat_classes/bare_sediment_mask_wet_valtot.tif")
+bare_sediment_mask_wet1<-bare_sediment_mask_wet
+bare_sediment_mask_wet1[bare_sediment_mask_wet1==1]<-13
+bare_sediment_mask_wet1[is.na(bare_sediment_mask_wet1)]<-0
 
 ### Dry Uca sediment
 uca_mask_dry<-stack("Data_out/Habitat_classes/uca_mask_dry_valtot.tif")
+uca_mask_dry1<-uca_mask_dry
+uca_mask_dry1[uca_mask_dry1==1]<-15
+uca_mask_dry1[is.na(uca_mask_dry1)]<-0
 
 ### Wet Uca sediment
 uca_mask_wet<-stack("Data_out/Habitat_classes/uca_mask_wet_valtot.tif")
-
-######################################
-####OR without wet and dry
-### Uca sediment (isolated from remaining area after separating bsed_mask)
-uca_mask<-stack("Data_out/Habitat_classes/uca_mask_valtot.tif")
-
-###Bare sediment without waterbody VS others
-bare_sediment_mask<-stack("Data_out/mask/mask_uca_others_valtot.tif")
-
+uca_mask_wet1<-uca_mask_wet
+uca_mask_wet1[uca_mask_wet1==1]<-17
+uca_mask_wet1[is.na(uca_mask_wet1)]<-0
 
 #############################################
 #### Gathering classes of level 0
-Level0_1<-overlay(macro_mask, rocks_mask,shells_mask,bare_sediment_mask,uca_mask, fun=sum)
-plot(Level0_1)
-Level0_2<-overlay(macro_mask, rocks_mask,shells_mask,bare_sediment_mask_dry,bare_sediment_mask_wet,uca_mask_dry,uca_mask_wet,fun=sum)
+
+Level0_1<-overlay(macro_mask1, rocks_mask1,shells_mask1,bare_sediment_mask1,uca_mask1, fun=sum)
+Level0_1[Level0_1==0]<-NA
+beep(3)
+plot(Level0_1[Level0_1>0])
+Level0_1
+plot(Level0_1,col=rainbow(5))
+
+xx<-drawExtent()
+pp<-crop(Level0_1,xx)
+plot(pp, col=c("green","red","blue","darkgrey","lightgrey"))
+
+Level0_2<-overlay(macro_mask1, rocks_mask1,shells_mask1,bare_sediment_mask_dry1,bare_sediment_mask_wet1,uca_mask_dry1,uca_mask_wet1,fun=sum)
+
+
