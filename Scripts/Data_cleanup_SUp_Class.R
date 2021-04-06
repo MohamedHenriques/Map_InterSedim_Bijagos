@@ -257,14 +257,17 @@ DF[,unique(sediment0)]
 DF[,bsed:=ifelse(cover_over=="bare_sediment","bare_sediment","other")]
 DF[,unique(bsed)]
 
+DF[,bsed1:=ifelse(cover_over=="bare_sediment","bare_sediment",ifelse(cover_over=="water_body","water_body","other"))]
+DF[,unique(bsed1)]
+
 DF[,uca:=ifelse(cover_over=="uca","uca","other")]
 DF[,unique(uca)]
 
 ###Introduce new columns on polygons
-DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,rocks, macro,shells,sediment0,bsed,uca,Point)]
+DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
 
 GT_c1<-merge(GT_c,DF1,by="Point")
-plot(GT_c1)
+#plot(GT_c1)
 #str(GT_c1@data)
 
 writeOGR(GT_c1,"Data_out/Polygons",layer="GT_c1",driver = "ESRI Shapefile",overwrite_layer = T)

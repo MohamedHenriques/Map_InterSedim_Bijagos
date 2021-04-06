@@ -61,14 +61,14 @@ L0_val[,table(covr_vr)]
 #L0_train1<-L0_train[,.(covr_vr,Point)]
 
 GT_c_l0_t<-merge(GT_c1,L0_train,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t,col="red")
-str(GT_c_l0_t@data)
+#plot(GT_c_l0_t,col="red")
+#tr(GT_c_l0_t@data)
 
 #L0_val1<-L0_val[,.(covr_vr,Point)]
 
 GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v)
-str(GT_c_l0_v@data)
+#plot(GT_c_l0_v)
+#str(GT_c_l0_v@data)
 
 
 
@@ -246,7 +246,7 @@ beep(4)
 ##Split data in training + validation using caret balanced splitting
 
 set.seed(10)
-trainIndex_shell <- createDataPartition(L0_train$shells, p = .7, 
+trainIndex_shell <- createDataPartition(L0_train$shells, p = .8, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex_shell)
@@ -260,13 +260,13 @@ L0_val_shell[,table(shells)]
 #L0_train1_shell<-L0_train_shell[,.(shells,Point)]
 
 GT_c_l0_t_shell<-merge(GT_c1,L0_train_shell,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t_shell,col="red")
+#plot(GT_c_l0_t_shell,col="red")
 #str(GT_c_l0_t@data)
 
 #L0_val1_shell<-L0_val_shell[,.(shells,Point)]
 
 GT_c_l0_v_shell<-merge(GT_c1,L0_val_shell,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v_shell)
+#plot(GT_c_l0_v_shell)
 #str(GT_c_l0_v@data)
 
 ### Supervised class with rstoolbox and rf: shells
@@ -283,6 +283,7 @@ SC1_shells<-superClass(img=sat_shells,model="rf",trainData=GT_c_l0_t_shell,respo
                       predType="raw",filename="Data_out/Class_map/SC1_shells.tif")
 endCluster()
 beep(3)
+saveRSTBX(SC1_shells,"Data_out/models/SC1_shells",format = "raster")
 
 plot(SC1_shells$map, colNA=1,main="Shells VS rest")
 shellsmap<-SC1_shells$map
@@ -292,7 +293,7 @@ SC1_shells$classMapping
 shells_mask<-shellsmap==2
 shells_mask[shells_mask==0]<-NA # turn wet area (coded zero) into NA
 plot(shells_mask, colNA=1)
-writeRaster(shells_mask,"Data_out/Habitat_classes/shells_mask_valtot.tif",overwrite=T)
+writeRaster(shells_mask,"Data_out/Habitat_classes/Level0/shells_mask_valtot.tif",overwrite=T)
 
 mask_shells_others<-shellsmap==1
 mask_shells_others[mask_shells_others==0]<-NA # turn wet area (coded zero) into NA
@@ -393,13 +394,13 @@ L0_val_sed<-L0_train[-trainIndex_sed]
 #L0_train1_sed<-L0_train_sed[,.(sedmnt0,Point)]
 
 GT_c_l0_t_sed<-merge(GT_c1,L0_train_sed,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t_sed,col="red")
+#plot(GT_c_l0_t_sed,col="red")
 #str(GT_c_l0_t@data)
 
 #L0_val1_sed<-L0_val_sed[,.(sedmnt0,Point)]
 
 GT_c_l0_v_sed<-merge(GT_c1,L0_val_sed,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v_sed)
+#plot(GT_c_l0_v_sed)
 #str(GT_c_l0_v@data)
 
 ### Supervised class with rstoolbox and rf: shells
@@ -413,7 +414,7 @@ plot(GT_c_l0_v_sed)
 #sat_sed_wet<-mask(sat,wet_mask)
 #writeRaster(sat_sed_wet,"Data_out/Stack/sat_sed_wet_valtot.tif",overwrite=T)
 
-sat_sed<-stack("Data_out/Stack/sat_sed.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
+sat_sed<-stack("Data_out/Stack/sat_sed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
 beep(2)
 
 ### DRY
@@ -517,6 +518,10 @@ set.seed(101)
 trainIndex_bsed <- createDataPartition(L0_train$bsed, p = .7, 
                                         list = FALSE, 
                                         times = 1)
+
+#trainIndex_bsed1 <- createDataPartition(L0_train$bsed1, p = .7, 
+                                       #list = FALSE, 
+                                       #times = 1)
 head(trainIndex_bsed)
 
 L0_train_bsed<-L0_train[trainIndex_bsed]
@@ -524,32 +529,45 @@ L0_train_bsed[,table(bsed)]
 L0_val_bsed<-L0_train[-trainIndex_bsed]
 L0_val_bsed[,table(bsed)]
 
+#L0_train_bsed1<-L0_train[trainIndex_bsed1]
+#L0_train_bsed1[table(bsed1)]
+#L0_val_bsed1<-L0_train[-trainIndex_bsed1]
+#L0_val_bsed1[,table(bsed)]
+
 ###Introduce new columns on training and validation polygons
 #L0_train1_bsed<-L0_train_bsed[,.(bsed,Point)]
 
 GT_c_l0_t_bsed<-merge(GT_c1,L0_train_bsed,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t_bsed,col="red")
+#plot(GT_c_l0_t_bsed,col="red")
 #str(GT_c_l0_t@data)
+#GT_c_l0_t_bsed1<-merge(GT_c1,L0_train_bsed1,by="Point",all.x=F,all.y=T)
 
 #L0_val1_bsed<-L0_val_bsed[,.(bsed,Point)]
 
 GT_c_l0_v_bsed<-merge(GT_c1,L0_val_bsed,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v_bsed)
+#plot(GT_c_l0_v_bsed)
 #str(GT_c_l0_v@data)
+#GT_c_l0_v_bsed1<-merge(GT_c1,L0_val_bsed1,by="Point",all.x=F,all.y=T)
 
 ### Supervised class with rstoolbox and rf: bsed
 #mask_shells_others<-stack("Data_out/mask/mask_shells_others_valtot.tif")
 #sat_bsed<-mask(sat,mask_shells_others)
-#writeRaster(sat_bsed,"Data_out/Stack/sat_bsed_valtot.tif",overwrite=T)
-sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #made from the remaining area after excluding macroalgae and rock areas
+#sat_bsed1<-mask(sat,mask_uca_others) #when isolating uca areas first and then bare sediment including waterbody
+#writeRaster(sat_bsed1,"Data_out/Stack/sat_bsed1_valtot.tif",overwrite=T)
+#sat_bsed1<-stack("Data_out/Stack/sat_bsed1_valtot.tif") #made from remaining area after removing uca
+sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
 beep(5)
 
 set.seed(111)
 beginCluster(7)
 SC1_bsed<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_bsed,responseCol="bsed.x",valData=GT_c_l0_v_bsed,polygonBasedCV=F,predict=T,
                        predType="raw",filename="Data_out/Class_map/SC1_bsed_valtot.tif")
+#SC1_bsed1<-superClass(img=sat_bsed1,model="rf",trainData=GT_c_l0_t_bsed1,responseCol="bsed1.x",valData=GT_c_l0_v_bsed1,polygonBasedCV=F,predict=T,
+                     #predType="raw",filename="Data_out/Class_map/SC1_bsed_valtot.tif")
 endCluster()
 beep(3)
+saveRSTBX(SC1_bsed,"Data_out/models/SC1_bsed",format = "raster")
+#saveRSTBX(SC1_bsed1,"Data_out/models/SC1_bsed1",format = "raster")
 
 plot(SC1_bsed$map, colNA=1,main="Bare sediment VS rest")
 xx<-drawExtent()
@@ -557,7 +575,7 @@ cc<-crop(SC1_bsed$map,xx)
 plot(cc,colNA=1)
 
 bsedmap<-SC1_bsed$map
-SC1_bsed$classMapping
+SC1_bsed1$classMapping
 
 
 ###Isolating bsed area
@@ -608,7 +626,7 @@ plot(GT_c_l0_v_uca)
 #mask_shells_others<-stack("Data_out/mask/mask_shells_others_valtot.tif")
 #sat_uca<-mask(sat,mask_bsed_others)
 #writeRaster(sat_uca,"Data_out/Stack/sat_uca_valtot.tif",overwrite=T)
-#sat_uca<-stack("Data_out/Stack/sat_uca_valtot.tif") #made from the remaining area after excluding macroalgae and rock areas
+#sat_uca<-stack("Data_out/Stack/sat_uca_valtot.tif") #made from the remaining area after excluding bare sediment (exclusing waterbody)
 beep(5)
 
 set.seed(11)
@@ -623,12 +641,13 @@ ucamap<-SC1_uca$map
 SC1_uca$classMapping
 
 ###Isolating uca area
-uca_mask<-ucamap==1
+uca_mask<-ucamap==2
 uca_mask[uca_mask==0]<-NA # turn wet area (coded zero) into NA
 plot(uca_mask, colNA=1)
 writeRaster(uca_mask,"Data_out/Habitat_classes/uca_mask_valtot.tif",overwrite=T)
 
-mask_uca_others<-ucamap==2
+##Isolating bare sediment
+mask_uca_others<-ucamap==1
 mask_uca_others[mask_uca_others==0]<-NA # turn wet area (coded zero) into NA
 plot(mask_uca_others, colNA=1)
 writeRaster(mask_uca_others,"Data_out/mask/mask_uca_others_valtot.tif",overwrite=T)
