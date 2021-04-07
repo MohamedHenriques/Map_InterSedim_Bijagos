@@ -219,6 +219,8 @@ DF[c_water>=85,cover_over:="water_body"]
 DF[,WB:=ifelse(c_water>=30,"flooded","dry")]
 DF[,unique(WB)]
 
+DF[,WD:=ifelse(c_water<20,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
+DF[,table(WD)]
 
 
 ########################################
@@ -264,7 +266,7 @@ DF[,uca:=ifelse(cover_over=="uca","uca","other")]
 DF[,unique(uca)]
 
 ###Introduce new columns on polygons
-DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
+DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
 
 GT_c1<-merge(GT_c,DF1,by="Point")
 #plot(GT_c1)

@@ -104,15 +104,15 @@ plot(mNDWI)
 plot(NDMI)
 plot(NDMI1)
 
-all_m1<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1)
-names(all_m1)[15:18]<-c("NDWI","mNDWI","NDMI","NDMI1")
+sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1)
+names(sat)[15:18]<-c("NDWI","mNDWI","NDMI","NDMI1")
 
 #plot(all_m1)
 writeRaster(all_m1,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
 
 ## Extract values 
 beginCluster(7)
-system.time(DF<-extract(sat,GT_c1,cellnumbers=T,df=F,factors=T,nl=15,na.rm=T))
+system.time(DF<-extract(sat,GT_c1,cellnumbers=T,df=F,factors=T,nl=18,na.rm=T))
 beep(3)
 endCluster()
 

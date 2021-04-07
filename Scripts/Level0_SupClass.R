@@ -13,10 +13,10 @@ names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_2
 
 ##Load wet and dry masks (produced in script SupClass_WetVSDry)
 dry_mask<-raster("Data_out/mask/dry_mask.tif")
-plot(dry_mask,colNA=1)
+#plot(dry_mask,colNA=1)
 
 wet_mask<-stack("Data_out/mask/wet_mask.tif")
-plot(wet_mask,colNA=1)
+#plot(wet_mask,colNA=1)
 
 ##Load GT polygons
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
@@ -32,29 +32,36 @@ str(DF2)
 ## mask out wet areas first
 beginCluster(7)
 sat_dry<-mask(sat,dry_mask)
-plot(sat_dry, colNA=1,main="sat dry")
+#plot(sat_dry, colNA=1,main="sat dry")
 endCluster()
+beep(3)
+writeRaster(sat_dry,"Data_out/Stack/sat_dry.tif",overwrite=T)
+sat_dry<-stack("Data_out/Stack/sat_dry.tif")
 
 ##mask out dry areas now
 beginCluster(7)
 sat_wet<-mask(sat,wet_mask)
 plot(sat_wet, colNA=1,main="sat wet")
 endCluster()
+beep(3)
+writeRaster(sat_wet,"Data_out/Stack/sat_wet.tif")
 
 
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
+DF3<-data.table(DF2)
+DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
 
 set.seed(10)
-trainIndex <- createDataPartition(DF2$covr_vr, p = .7, 
+trainIndex <- createDataPartition(DF3$covr_vrA, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
-L0_train<-DF2[trainIndex]
-L0_train[,table(covr_vr)]
+L0_train<-DF3[trainIndex]
+L0_train[,table(covr_vrA)]
 
-L0_val<-DF2[-trainIndex]
-L0_val[,table(covr_vr)]
+L0_val<-DF3[-trainIndex]
+L0_val[,table(covr_vrA)]
 
 
 ###Introduce new columns on training and validation polygons
@@ -62,7 +69,7 @@ L0_val[,table(covr_vr)]
 
 GT_c_l0_t<-merge(GT_c1,L0_train,by="Point",all.x=F,all.y=T)
 #plot(GT_c_l0_t,col="red")
-#tr(GT_c_l0_t@data)
+#str(GT_c_l0_t@data)
 
 #L0_val1<-L0_val[,.(covr_vr,Point)]
 
@@ -77,24 +84,29 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 ### Supervised class with rstoolbox and rf: all classes all area
 set.seed(11)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vr.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
-                predType="raw",filename="Data_out/Class_map/SC1.tif")
+SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+                predType="raw",filename=NULL)
 endCluster()
 beep(3)
-#plot(SC1$map)
+saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster")
+
+
+plot(SC1$map,colNA=1,col=c("lightgrey","green","red","blue","darkgrey"))
 SC1$classMapping
 
 xx<-drawExtent()
 adonga_t<-crop(SC1$map,xx)
-plot(adonga_t, colNA=1)
+plot(adonga_t, colNA=1,col=c("lightgrey","green","red","blue","darkgrey"))
 
 ### Supervised class with rstoolbox and rf: dry area
 set.seed(12)
 beginCluster(7)
-SC1_dry<-superClass(img=sat_dry,model="rf",trainData=GT_c_l0_t,responseCol="cvr_vr1.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1_dry<-superClass(img=sat_dry,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename="Data_out/Class_map/SC1_dry.tif")
 endCluster()
 beep(3)
+saveRSTBX(SC1_dry,"Data_out/models/Sc1_dry",format="raster")
+
 plot(SC1_dry$map, colNA=1, main="cover over dry")
 SC1_dry$classMapping
 
@@ -105,10 +117,11 @@ plot(adonga, colNA=1)
 ### Supervised class with rstoolbox and rf: wet area
 set.seed(13)
 beginCluster(7)
-SC1_wet<-superClass(img=sat_wet,model="rf",trainData=GT_c_l0_t,responseCol="cvr_vr1.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1_wet<-superClass(img=sat_wet,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                     predType="raw",filename="Data_out/Class_map/SC1_wet.tif")
 endCluster()
 beep(3)
+saveRSTBX(SC1_wet,"Data_out/models/Sc1_wet",format="raster")
 
 plot(SC1_wet$map, colNA=1, main="cover over wet")
 
