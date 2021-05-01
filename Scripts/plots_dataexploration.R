@@ -37,6 +37,8 @@ m3<-m2[sample(1:nrow(m2),20000,replace=F),]
 m4<-m3[,-c(19:21)]
 m5<-m2[,-c(35:40)]
 
+m2_1<-
+
 ##run PCA analysis
 m4_pca<-prcomp(m4,center=T,scale=T)
 summary(m4_pca)
