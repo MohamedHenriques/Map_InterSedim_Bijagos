@@ -8,8 +8,10 @@ lapply(packs,require,character.only=T)
 ## Load sat img
 
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204","B08A_20200204",
-         "B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","DEM","NDWI","mNDWI","NDMI","NDMI1")
+names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+              "visible_multi")
 
 ##Load GT polygons (without Adonga)
 GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp")
@@ -219,7 +221,7 @@ DF[c_water>=85,cover_over:="water_body"]
 DF[,WB:=ifelse(c_water>=30,"flooded","dry")]
 DF[,unique(WB)]
 
-DF[,WD:=ifelse(c_water<20,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
+DF[,WD:=ifelse(c_water<30,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
 DF[,table(WD)]
 
 
@@ -237,9 +239,18 @@ DF[,cover_over1:=ifelse(c_uca>=50,"uca",
 DF[,unique(cover_over1)]
 
 
+DF[,cover_overA:=as.character(cover_over)][cover_overA=="water_body",cover_overA:="bare_sediment"]
+
+###create new column with mix of cover_over, sed type and water content
+DF[,cover_sed_field:=paste(cover_overA,Class_22,sep="_")][cover_overA=="macroalgae"|cover_overA=="rock"|cover_overA=="shell",cover_sed_field:=cover_overA][Class_22=="water_body",cover_sed_field:="bare_sediment"][is.na(Class_22),cover_sed_field:=cover_overA]
+DF[,table(cover_sed_field)]
+
+DF[,cover_sed_grad:=paste(cover_overA,Sd_cls1,sep="_")][cover_overA=="macroalgae"|cover_overA=="rock"|cover_overA=="shell",cover_sed_grad:=cover_overA]
+DF[,table(cover_sed_grad)]
+
 ####################################################################################
 ########################################################################################
-##creat unique remapped columns for individual classification of rock, macroalgae, shell etc
+##create unique remapped columns for individual classification of rock, macroalgae, shell etc
 
 DF[,rocks:=ifelse(cover_over=="rock","rock","other")]
 DF[,unique(rocks)]
@@ -266,7 +277,7 @@ DF[,uca:=ifelse(cover_over=="uca","uca","other")]
 DF[,unique(uca)]
 
 ###Introduce new columns on polygons
-DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
+DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,cover_overA,cover_sed_field,cover_sed_grad,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
 
 GT_c1<-merge(GT_c,DF1,by="Point")
 #plot(GT_c1)

@@ -8,8 +8,10 @@ lapply(packs,require,character.only=T)
 ## Load sat img
 
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204","B08A_20200204",
-              "B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","DEM","NDWI","mNDWI","NDMI","NDMI1")
+names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                          "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                          "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+                          "visible_multi")
 
 ##Load wet and dry masks (produced in script SupClass_WetVSDry)
 dry_mask<-raster("Data_out/mask/dry_mask.tif")
@@ -23,7 +25,7 @@ GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_S
 #plot(GT_c1)
 #unique(GT_c1@data$cvr_vr1)
 DF2<-data.table(GT_c1@data)
-str(DF2)
+#str(DF2)
 #write.csv(DF2,"Data_out/db/DF2.csv",row.names=F)
 ########################################
 
@@ -89,14 +91,16 @@ SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA",va
 endCluster()
 beep(3)
 saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster")
+SC1<-readRSTBX("Data_out/models/SC1_all")
 
-
-plot(SC1$map,colNA=1,col=c("lightgrey","green","red","blue","darkgrey"))
 SC1$classMapping
+plot(SC1$map,colNA=1,col=c("lightgrey","green","red","blue","grey30"))
+SC1_all_tif<-SC1$map
+writeRaster(SC1_all_tif,"Data_out/models/SC1_all.tif")
 
 xx<-drawExtent()
 adonga_t<-crop(SC1$map,xx)
-plot(adonga_t, colNA=1,col=c("lightgrey","green","red","blue","darkgrey"))
+plot(adonga_t, colNA=1,col=c("lightgrey","green","red","blue","grey30"))
 
 ### Supervised class with rstoolbox and rf: dry area
 set.seed(12)
@@ -109,6 +113,9 @@ saveRSTBX(SC1_dry,"Data_out/models/Sc1_dry",format="raster")
 
 plot(SC1_dry$map, colNA=1, main="cover over dry")
 SC1_dry$classMapping
+writeRaster(SC1_dry$map,"Data_out/models/SC1_dry.tif")
+
+
 
 xx<-drawExtent()
 adonga_dry<-crop(SC1_dry$map,xx)
@@ -122,8 +129,10 @@ SC1_wet<-superClass(img=sat_wet,model="rf",trainData=GT_c_l0_t,responseCol="covr
 endCluster()
 beep(3)
 saveRSTBX(SC1_wet,"Data_out/models/Sc1_wet",format="raster")
+SC1_wet$classMapping
 
 plot(SC1_wet$map, colNA=1, main="cover over wet")
+writeRaster(SC1_wet$map,"Data_out/models/SC1_wet.tif")
 
 
 
