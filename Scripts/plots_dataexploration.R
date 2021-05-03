@@ -1,8 +1,24 @@
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
+
+OS <- .Platform$OS.type
+if (OS == "windows"){
+  setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  print(paste("working on",OS,getwd()))
+} else if (OS == "unix"){
+  setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
+  print(paste("working on",OS,getwd()))
+} else {
+  print("ERROR: OS could not be identified")
+}
+
 rm(list=ls())
 graphics.off()
 
-packs<-c("ggbiplot","caret","sf","beepr","ggplot2","viridis","data.table","reshape2","corrplot","PerformanceAnalytics","Hmisc")
+##Load/install packages. In case the PC used does not have the packages installed
+packs<-c("devtools","ggbiplot","caret","sf","beepr","ggplot2","viridis","data.table","reshape2","corrplot","PerformanceAnalytics","Hmisc")
+npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
+if(length(npacks)) install.packages(npacks)
+#install_github("vqv/ggbiplot")
+
 lapply(packs,require,character.only=T)
 
 ##load extract data
@@ -22,6 +38,10 @@ set.seed(0)
 m3<-m2[sample(1:nrow(m2),20000,replace=F),]
 m4<-m3[,-c(19:21)]
 m5<-m2[,-c(35:40)]
+
+
+m2_1<-
+
 
 ##run PCA analysis
 m4_pca<-prcomp(m4,center=T,scale=T)

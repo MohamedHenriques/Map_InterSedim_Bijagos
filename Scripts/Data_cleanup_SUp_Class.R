@@ -1,3 +1,4 @@
+
 setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
@@ -284,5 +285,3 @@ GT_c1<-merge(GT_c,DF1,by="Point")
 #str(GT_c1@data)
 
 writeOGR(GT_c1,"Data_out/Polygons",layer="GT_c1",driver = "ESRI Shapefile",overwrite_layer = T)
-
-
