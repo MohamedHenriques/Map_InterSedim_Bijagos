@@ -97,25 +97,48 @@ NDWI<-(all_m$B03_20200204-all_m$B08_20200204)/(all_m$B03_20200204+all_m$B08_2020
 mNDWI<-(all_m$B03_20200204-all_m$B11_20200204)/(all_m$B03_20200204+all_m$B11_20200204)
 NDMI<-(all_m$B08_20200204-all_m$B11_20200204)/(all_m$B08_20200204+all_m$B11_20200204)
 NDMI1<-(all_m$B08A_20200204-all_m$B11_20200204)/(all_m$B08A_20200204+all_m$B11_20200204)
-beep()
+NDVI<-(all_m$B08_20200204-all_m$B04_20200204)/(all_m$B08_20200204+all_m$B04_20200204)
+RVI<-(4*all_m$S1_20200128_VH)/(all_m$S1_20200128_VV+all_m$S1_20200128_VH)
+VH_VV<-(all_m$S1_20200128_VH)/(all_m$S1_20200128_VV)
+
+beep(3)
 
 plot(NDWI)
 plot(mNDWI)
 plot(NDMI)
 plot(NDMI1)
+plot(NDVI)
+plot(RVI)
+plot(VH_VV)
 
-sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1)
-names(sat)[15:18]<-c("NDWI","mNDWI","NDMI","NDMI1")
+###Load new bands with indexes created by belo
+path1<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Files_sat_cap/Sat_image"
+files1<-list.files(path=path1,pattern=".tif")
+S2_index<-raster(paste(path1,files1[1],sep="/"))
 
-#plot(all_m1)
-writeRaster(all_m1,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
+for(i in 2:length(files1)) {
+  S2_index<-stack(S2_index,paste(path1,files1[i],sep="/"))
+}
+
+S2_index
+names(S2_index)
+
+sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,S2_index)
+names(sat)[15:21]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV")
+
+#plot(sat)
+writeRaster(sat,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
+sat<-stack("Data_out/Stack/Final_stack.tif")
+names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+              "visible_multi")
 
 ## Extract values 
 beginCluster(7)
-system.time(DF<-extract(sat,GT_c1,cellnumbers=T,df=F,factors=T,nl=18,na.rm=T))
-beep(3)
+system.time(DF<-extract(sat,GT_c1,cellnumbers=T,df=F,factors=T,nl=26,na.rm=T))
 endCluster()
-
+beep(3)
 
 
 ##Remove points that do not fall into Urok area
@@ -140,4 +163,4 @@ unique(m1[is.na(m1$B02_20200204),"Point"])
 
 #write.table(m1,"Data_out/db/GraVSSat_db_20210114.csv",row.names=F,sep=";")
 
-write.table(m1,"Data_out/db/DF_extract_20210403.csv",row.names=F,sep=";")
+write.table(m1,"Data_out/db/DF_extract_20210429.csv",row.names=F,sep=";")
