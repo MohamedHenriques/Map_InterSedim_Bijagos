@@ -1,7 +1,8 @@
-
+rm(list=ls())
+graphics.off()
 OS <- .Platform$OS.type
 if (OS == "windows"){
-  setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
   print(paste("working on",OS,getwd()))
 } else if (OS == "unix"){
   setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
@@ -10,8 +11,7 @@ if (OS == "windows"){
   print("ERROR: OS could not be identified")
 }
 
-rm(list=ls())
-graphics.off()
+
 
 ##Load/install packages. In case the PC used does not have the packages installed
 packs<-c("devtools","ggbiplot","caret","sf","beepr","ggplot2","viridis","data.table","reshape2","corrplot","PerformanceAnalytics","Hmisc")
@@ -26,12 +26,57 @@ m1<-fread("Data_out/db/DF_extract_20210429.csv") # created in script Sat_image_s
 str(m1)
 m1[,c_uca:=as.numeric(c_uca)]
 
-## create subset of columns and remove NA
-m2<-m1[,c(2:28,32:39,46:47,19:53,55,57:62,70:81)]
-#m2<-na.omit(m1[,c(2:19,20,60,63)])
+## create subset of columns
+m2<-m1[,c(2:28,34:39,49:52,57:61,63,66,70:77,81)]
 str(m2)
+
 table(is.na(m2))
 m2[,table()]
+
+
+
+##################################################################################################
+#####################################################################################################
+###plots for uca
+
+melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","WD","c_uca"),measure=c(10:26,28,33,38:42),variable.factor=F,value.factor=F)
+str(melt1)
+melt1[,table(variable)]
+melt1[,table(cvr_sd_f)]
+
+ggplot(melt1,aes(x=c_uca,y=value))+
+  #geom_point(position = position_jitter())+
+  stat_summary(na.rm=T, col="red")+
+  stat_smooth(na.rm=T, method="gam")+
+  facet_wrap(.~variable,scales="free")+
+  theme_bw()
+
+
+
+
+
+
+
+## subset database for a PCA focused on separating water from dry areas (column WD, 30% cut)
+m3<-m2[,.(NDWI,mNDWI,NDMI,NDMI1,B11_20200204,B12_20200204,S1_20200128_VH,S1_20200128_VV,mud,Sand,WD)]
+str(m3)
+m4<-na.omit(m3)
+str(m4)
+m4[,table(WD)]
+
+
+##run PCA analysis
+m4_pca<-prcomp(m4[,-11],center=T,scale=T)
+summary(m4_pca)
+
+##plot PCA
+
+ggbiplot(m4_pca,choices=1:2,ellipse=T,groups=m4$WD,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="Wet VS Dry (30% cut)")
+
+#stat_ellipse(lwd=1,level=.6,aes(group=m3$cover_over,colour=m3$cover_over))
+
 
 ##sample database to reduce size
 set.seed(0)
@@ -40,7 +85,7 @@ m4<-m3[,-c(19:21)]
 m5<-m2[,-c(35:40)]
 
 
-m2_1<-
+
 
 
 ##run PCA analysis
