@@ -43,6 +43,8 @@ system.time(
 endCluster()
 beep(3)
 
+saveRSTBX(PCA_WD,"Data_out/PCA/PCA_WD",format="raster",overwrite=F)
+
 ##Load GT polygons
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
 DF2<-data.table(GT_c1@data)
