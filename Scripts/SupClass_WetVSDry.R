@@ -1,15 +1,47 @@
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
+OS <- .Platform$OS.type
+if (OS == "windows"){
+  setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  print(paste("working on",OS,getwd()))
+} else if (OS == "unix"){
+  setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
+  print(paste("working on",OS,getwd()))
+} else {
+  print("ERROR: OS could not be identified")
+}
 
-packs<-c("randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+
+packs<-c("foreach","doParallel","randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
+if(length(npacks)) install.packages(npacks)
+#install_github("vqv/ggbiplot")
 lapply(packs,require,character.only=T)
+
+p<-c("green","red","blue","grey50","lightgrey")
 
 ## Load sat img
 
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204","B08A_20200204",
-              "B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","DEM","NDWI","mNDWI","NDMI","NDMI1")
+names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                          "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                          "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+                          "visible_multi")
+
+### subset sat stack to select bands to preform a pca aiming at separating wet and dry areas
+sel_WD<-c("B08_20200204","B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+          "NDWI","mNDWI","NDMI","NDMI1","VH_VV")
+sat_WD<-raster::subset(sat,sel_WD)
+names(sat_WD)
+
+### PCA to seperate wet and dry areas
+#table(is.na(sat_WD))
+beginCluster(7)
+system.time(
+  PCA_WD<-rasterPCA(sat_WD,spca=T,nsnSamples = NULL,maskCheck=F)
+)
+endCluster()
+beep(3)
 
 ##Load GT polygons
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
@@ -19,19 +51,20 @@ str(DF2)
 
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
-DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
+DF3[,table(cvr_vrA)]
+#DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
 
 set.seed(10)
-trainIndex <- createDataPartition(DF3$covr_vrA, p = .7, 
+trainIndex <- createDataPartition(DF3$cvr_vrA, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L0_train<-DF3[trainIndex]
-L0_train[,table(covr_vrA)]
+L0_train[,table(cvr_vrA)]
 
 L0_val<-DF3[-trainIndex]
-L0_val[,table(covr_vrA)]
+L0_val[,table(cvr_vrA)]
 
 
 ###Introduce new columns on training and validation polygons
@@ -53,39 +86,43 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 
 ##Split data in training + validation using caret balanced splitting
 
-set.seed(10)
-trainIndex_WB <- createDataPartition(L0_train$WB, p = .7, 
-                                     list = FALSE, 
-                                     times = 1)
-head(trainIndex_WB)
+#set.seed(10)
+#trainIndex_WB <- createDataPartition(L0_train$WB, p = .7, 
+                                     #list = FALSE, 
+                                     #times = 1)
+#head(trainIndex_WB)
 
-L0_train_WB<-DF3[trainIndex_WB]
-L0_val_WB<-DF3[-trainIndex_WB]
+#L0_train_WB<-DF3[trainIndex_WB]
+#L0_val_WB<-DF3[-trainIndex_WB]
 
 
 ###Introduce new columns on training and validation polygons
-GT_c_l0_t_WB<-merge(GT_c1,L0_train_WB,by="Point",all.x=F,all.y=T)
+#GT_c_l0_t_WB<-merge(GT_c1,L0_train_WB,by="Point",all.x=F,all.y=T)
 
-GT_c_l0_v_WB<-merge(GT_c1,L0_val_WB,by="Point",all.x=F,all.y=T)
+#GT_c_l0_v_WB<-merge(GT_c1,L0_val_WB,by="Point",all.x=F,all.y=T)
+
+###create new treshold for Water
+GT_c_l0_t$WD20<-ifelse(GT_c_l0_t$c_water.x<20,"dry","wet")
+GT_c_l0_v$WD20<-ifelse(GT_c_l0_v$c_water.x<20,"dry","wet")
 
 ### Supervised class with rstoolbox and rf
 set.seed(11)
 beginCluster(7)
-SC1_WB<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_WB,responseCol="WB.y",valData=GT_c_l0_v_WB,polygonBasedCV=F,predict=T,
+SC1_WD20<-superClass(img=sat_WD,model="rf",trainData=GT_c_l0_t,responseCol="WD20",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                    predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_WB,"Data_out/models/SC1_WB",format="raster",overwrite=T)
-SC1_WB$classMapping
+saveRSTBX(SC1_WD30,"Data_out/models/SC1_WD30",format="raster",overwrite=T)
+SC1_WD30$classMapping
 
-pal<-c("green","red","blue","dark                                                                                                                                                              grey","lightgrey")
+pWD<-c("red","lightblue")
 
-plot(SC1_WB$map, colNA=1,col=pal,main="WetVSDry, 20% cut")
+plot(SC1_WD30$map, colNA=1,col=pWD,main="WetVSDry, 30% cut")
 
 
 
-WBmap<-SC1_WB$map
-plot(WBmap[WBmap$WB==1])
+#WBmap<-SC1_WB$map
+#plot(WBmap[WBmap$WB==1])
 
 ###Isolating dry area
 dry_mask<-WBmap==1
@@ -110,8 +147,8 @@ writeRaster(wet_mask,"Data_out/mask/wet_mask.tif")
 ##########################################################################
 ###create threshold with water cover
 
-DF3[,WD:=ifelse(c_water<20,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
-DF3[,table(WD)]
+DF3[,WD20:=ifelse(c_water<20,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
+DF3[,table(WD20)]
 
 
 ##Split data in training + validation using caret balanced splitting

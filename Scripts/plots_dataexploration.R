@@ -197,7 +197,7 @@ m4_WD<-m4_1[rndid<=min(n$N)] ##Chose 50 because one of the classes has too few o
 m4_WD[,table(WD)]
 
 ##run PCA analysis
-m4_pca<-prcomp(m4_WD[,!c("WD","cvr_vrA","cvr_sd_f","cvr_sd_g","uca")],center=T,scale=T)
+m4_pca<-prcomp(m4_WD[,!c("WD","cvr_vrA","cvr_sd_f","cvr_sd_g","uca","D50_um_","Mn_fw_m","Mn_fw_p","intensity")],center=T,scale=T)
 summary(m4_pca)
 
 ##plot PCA

@@ -1,9 +1,20 @@
-<<<<<<< HEAD
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
+OS <- .Platform$OS.type
+if (OS == "windows"){
+  setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  print(paste("working on",OS,getwd()))
+} else if (OS == "unix"){
+  setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
+  print(paste("working on",OS,getwd()))
+} else {
+  print("ERROR: OS could not be identified")
+}
 
 packs<-c("randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
+if(length(npacks)) install.packages(npacks)
+#install_github("vqv/ggbiplot")
 lapply(packs,require,character.only=T)
 
 ## Load sat img
@@ -176,7 +187,7 @@ plot(GT_c_l0_v_macro)
 
 set.seed(11)
 beginCluster(7)
-SC1_macro<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_macro,responseCol="macro.x",valData=GT_c_l0_v_macro,polygonBasedCV=F,predict=T,
+SC1_macro<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="macro.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                       predType="raw",filename="Data_out/Class_map/SC1_macro_valtot.tif")
 endCluster()
 beep(3)
@@ -233,14 +244,16 @@ plot(GT_c_l0_v_rock)
 
 ### Supervised class with rstoolbox and rf: rocks
 #mask_macro_others<-raster("Data_out/mask/mask_macro_others.tif")
+beginCluster(7)
 sat_rocks<-mask(sat,mask_macro_others)
+endCluster()
 writeRaster(sat_rocks,"Data_out/Stack/sat_rocks_valtot.tif", overwrite=T)
 #sat_rocks<-stack("Data_out/Stack/sat_rocks_valtot.tif")
 beep(3)
 
 set.seed(11)
 beginCluster(7)
-SC1_rocks<-superClass(img=sat_rocks,model="rf",trainData=GT_c_l0_t_rock,responseCol="rocks.x",valData=GT_c_l0_v_rock,polygonBasedCV=F,predict=T,
+SC1_rocks<-superClass(img=sat_rocks,model="rf",trainData=GT_c_l0_t,responseCol="rocks.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename="Data_out/Class_map/SC1_rocks_valtot.tif")
 endCluster()
 beep(3)
@@ -295,14 +308,14 @@ GT_c_l0_v_shell<-merge(GT_c1,L0_val_shell,by="Point",all.x=F,all.y=T)
 ### Supervised class with rstoolbox and rf: shells
 #sat_shells<-subset(sat,subset=c("B03_20200204","B04_20200204","B08_20200204","B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV"))
 #mask_rock_others<-stack("Data_out/mask/mask_rock_others_valtot.tif")
-#sat_shells<-mask(sat,mask_rock_others)
+sat_shells<-mask(sat,mask_rock_others)
 #writeRaster(sat_shells,"Data_out/Stack/sat_shells_valtot.tif",overwrite=T)
 sat_shells<-stack("Data_out/Stack/sat_shells_valtot.tif") #made from the remaining area after excluding macroalgae and rock areas
 beep(4)
 
 set.seed(11)
 beginCluster(7)
-SC1_shells<-superClass(img=sat_shells,model="rf",trainData=GT_c_l0_t_shell,responseCol="shells.x",valData=GT_c_l0_v_shell,polygonBasedCV=F,predict=T,
+SC1_shells<-superClass(img=sat_shells,model="rf",trainData=GT_c_l0_t,responseCol="shells.x",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                       predType="raw",filename="Data_out/Class_map/SC1_shells.tif")
 endCluster()
 beep(3)
@@ -330,68 +343,73 @@ area_shells<-sum(shells_mask[shells_mask==1])*res(shells_mask)[1]^2*10^-6 #calcu
 ######################### remove water #####################################################################
 
 set.seed(10)
-trainIndex_WB <- createDataPartition(L0_train$WB, p = .7, 
+trainIndex_WD <- createDataPartition(DF3$WD20, p = .7, 
                                       list = FALSE, 
                                       times = 1)
-head(trainIndex_WB)
+head(trainIndex_WD)
 
-L0_train_WB<-L0_train[trainIndex_WB]
-L0_train_WB[,table(WB)]
-L0_val_WB<-L0_train[-trainIndex_WB]
-L0_val_WB[,table(WB)]
+L0_train_WD<-DF3[trainIndex_WD]
+L0_train_WD[,table(WD)]
+L0_val_WD<-DF3[-trainIndex_WD]
+L0_val_WD[,table(WD)]
 
 ###Introduce new columns on training and validation polygons
 #L0_train1_WB<-L0_train_WB[,.(WB,Point)]
 
-GT_c_l0_t_WB<-merge(GT_c1,L0_train_WB,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_t_WB,col="red")
+GT_c_l0_t_WD<-merge(GT_c1,L0_train_WD,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_WD,col="red")
 #str(GT_c_l0_t@data)
 
 #L0_val1_WB<-L0_val_WB[,.(WB,Point)]
 
-GT_c_l0_v_WB<-merge(GT_c1,L0_val_WB,by="Point",all.x=F,all.y=T)
-plot(GT_c_l0_v_WB)
+GT_c_l0_v_WD<-merge(GT_c1,L0_val_WD,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_WD)
 #str(GT_c_l0_v@data)
 
 ### Supervised class with rstoolbox and rf: shells
 #mask_shells_others<-stack("Data_out/mask/mask_shells_others.tif")
-#sat_WB<-mask(sat,mask_shells_others)
-#writeRaster(sat_WB,"Data_out/Stack/sat_WB_valtot.tif",overwrite=T)
-sat_WB<-stack("Data_out/Stack/sat_sed.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
+beginCluster(7)
+sat_WD_all<-mask(sat,mask_shells_others)
+sat_WD_ess<-mask(sat_WD,mask_shells_others)
+endCluster()
+#writeRaster(sat_WD_all,"Data_out/Stack/sat_WD_all_valtot.tif",overwrite=T)
+#writeRaster(sat_WD_ess,"Data_out/Stack/sat_WD_ess_valtot.tif",overwrite=T)
+sat_WD_all<-stack("Data_out/Stack/sat_WD_all_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
+#sat_WD_ess<-stack("Data_out/Stack/sat_WD_ess_valtot.tif")
 beep(2)
 
 set.seed(1111)
 beginCluster(7)
-SC1_WB<-superClass(img=sat_WB,model="rf",trainData=GT_c_l0_t_WB,responseCol="WB.x",valData=GT_c_l0_v_WB,polygonBasedCV=F,predict=T,
+SC1_BS_WD20<-superClass(img=sat_WD_all,model="rf",trainData=GT_c_l0_t_WD,responseCol="WD20",valData=GT_c_l0_v_WD,polygonBasedCV=F,predict=T,
                         predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_WB,"Data_out/models/SC1_WB",format = "raster")
-SC1_WB<-readRSTBX("Data_out/models/SC1_WB.tif")
+saveRSTBX(SC1_BS_WD20,"Data_out/models/SC1_BS_WD20",format = "raster",overwrite=T)
+SC1_BS_WD20<-readRSTBX("Data_out/models/SC1_BS_WD20.tif")
 
-plot(SC1_WB$map, colNA=1,main="Bare Sed VS Uca VS flooded sed")
-WBmap<-SC1_WB$map
-SC1_WB$classMapping
+plot(SC1_BS_WD20$map,col=pWD, colNA=1,main="Wet VS Dry - 20% cut, all bands")
+WDmap<-SC1_BS_WD20$map
+SC1_BS_WD20$classMapping
 
 ad<-drawExtent()
-adp<-crop(SC1_WB$map,ad)
-plot(adp,colNA=1,col=c("white","red"))
+adp<-crop(SC1_BS_WD20$map,ad)
+plot(adp,col=pWD, colNA=1,main="Wet VS Dry - 20% cut, all bands")
 
 ###Isolating bare sediment areas
-dry_mask<-WBmap==1
+dry_mask<-WDmap==1
 dry_mask[dry_mask==0]<-NA # turn wet area (coded zero) into NA
-plot(dry_mask, colNA=1)
+#plot(dry_mask, colNA=1)
 writeRaster(dry_mask,"Data_out/Habitat_classes/dry_mask_valtot.tif",overwrite=T)
 
 area_dry<-sum(dry_mask[dry_mask==1])*res(dry_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
 
 ##Isolating wet sediment
-wet_mask<-WBmap==2
+wet_mask<-WDmap==2
 wet_mask[wet_mask==0]<-NA # turn wet area (coded zero) into NA
-plot(wet_mask, colNA=1)
+#plot(wet_mask, colNA=1)
 writeRaster(wet_mask,"Data_out/Habitat_classes/wet_mask_valtot.tif",overwrite=T)
 
-area_wet_mask<-sum(wet_mask[wet_mask==1])*res(wet_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
+area_wet<-sum(wet_mask[wet_mask==1])*res(wet_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
 
 
 
