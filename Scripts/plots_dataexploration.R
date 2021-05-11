@@ -52,8 +52,8 @@ ggplot(melt1,aes(x=c_uca,y=value))+
   scale_x_continuous(breaks=seq(0,100,10))+
   theme_bw()
 
-###Only for beach sand
-ggplot(melt1[cvr_sd_f=="bare_sediment_beach_sand"|cvr_sd_f=="uca_beach_sand"],aes(x=c_uca,y=value))+
+###Only for sediment
+ggplot(melt1[!(cvr_sd_f=="macroalgae"|cvr_sd_f=="rock"|cvr_sd_f=="shell")],aes(x=c_uca,y=value))+
   #geom_point(position = position_jitter())+
   stat_summary(na.rm=T, col="red")+
   stat_summary(fun=median,na.rm=T, col="green")+
