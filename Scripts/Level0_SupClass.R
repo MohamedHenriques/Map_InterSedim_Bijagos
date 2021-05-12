@@ -415,7 +415,7 @@ area_wet<-sum(wet_mask[wet_mask==1])*res(wet_mask)[1]^2*10^-6 #calculate bare se
 
 set.seed(1111)
 beginCluster(7)
-SC1_PCA_WD20<-superClass(img=PCA_map[[1:8]],model="rf",trainData=GT_c_l0_t_WD,responseCol="WD20",valData=GT_c_l0_v_WD,polygonBasedCV=F,predict=T,
+SC1_PCA_WD20<-superClass(img=PCA_map,model="rf",trainData=GT_c_l0_t_WD,responseCol="WD20",valData=GT_c_l0_v_WD,polygonBasedCV=F,predict=T,
                         predType="raw",filename=NULL)
 endCluster()
 beep(3)
