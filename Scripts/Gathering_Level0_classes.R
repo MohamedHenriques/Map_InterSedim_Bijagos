@@ -70,13 +70,16 @@ uca_mask_wet1[is.na(uca_mask_wet1)]<-0
 #############################################
 #### Gathering classes of level 0
 
+beginCluster(7)
 Level0_1<-overlay(macro_mask1, rocks_mask1,shells_mask1,uca_mask1,bare_sediment_mask1, fun=sum)
 Level0_1[Level0_1==0]<-NA
+endCluster()
 beep(3)
+
 plot(Level0_1[Level0_1>0])
 Level0_1
 plot(Level0_1)
-writeRaster(Level0_1,"Data_out/models/Level0_step_by_step_SupClass.tif",overwrite=F)
+writeRaster(Level0_1,"Data_out/models/Level0_step_by_step_SupClass.tif",overwrite=T)
 Level0_1<-raster("Data_out/models/Level0_step_by_step_SupClass.tif")
 
 p<-c("green","red","blue","grey50","lightgrey")
@@ -89,11 +92,11 @@ pp<-crop(Level0_1,xx)
 plot(pp, col=p)
 plot(GT_c_l0_v, col="pink", add=T)
 
-GT_c_l0_v$cover_over_f<-ifelse(GT_c_l0_v$covr_vrA=="macroalgae",1,
-                               ifelse(GT_c_l0_v$covr_vrA=="rock",3,
-                                ifelse(GT_c_l0_v$covr_vrA=="shell",5,
-                                ifelse(GT_c_l0_v$covr_vrA=="uca",7,
-                                ifelse(GT_c_l0_v$covr_vrA=="bare_sediment",9,NA)))))
+GT_c_l0_v$cover_over_f<-ifelse(GT_c_l0_v$cvr_vrA.y=="macroalgae",1,
+                               ifelse(GT_c_l0_v$cvr_vrA.y=="rock",3,
+                                ifelse(GT_c_l0_v$cvr_vrA.y=="shell",5,
+                                ifelse(GT_c_l0_v$cvr_vrA.y=="uca",7,
+                                ifelse(GT_c_l0_v$cvr_vrA.y=="bare_sediment",9,NA)))))
 
 Val_map<-validateMap(Level0_1,valData=GT_c_l0_v,responseCol="cover_over_f",mode="classification",nSamples = 500)
 

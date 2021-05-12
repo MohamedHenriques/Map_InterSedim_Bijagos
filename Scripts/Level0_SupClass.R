@@ -98,7 +98,7 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 ### Supervised class with rstoolbox and rf: all classes all area
 set.seed(11)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="cvr_vrA.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -112,7 +112,7 @@ writeRaster(SC1_all_tif,"Data_out/models/SC1_all.tif")
 
 xx<-drawExtent()
 adonga_t<-crop(SC1$map,xx)
-plot(adonga_t, colNA=1,col=c("lightgrey","green","red","blue","grey30"))
+plot(adonga_t, colNA=1,col=c("lightgrey","darkgreen","red","blue","grey30"))
 
 ### Supervised class with rstoolbox and rf: dry area
 set.seed(12)
@@ -147,7 +147,56 @@ plot(SC1_wet$map, colNA=1, main="cover over wet")
 writeRaster(SC1_wet$map,"Data_out/models/SC1_wet.tif")
 
 
+#################################################
+#################### classification using all target habitat classes
 
+##Load GT polygons
+GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
+DF2<-data.table(GT_c1@data)
+str(DF2)
+
+
+##Split data in training + validation using caret balanced splitting: Use this for final validation
+DF3<-data.table(DF2)
+DF3[,table(cvr_sd_f)]
+DF4<-DF3[!(cvr_sd_f=="bare_sediment"),]
+str(DF4)
+DF4[,cvr_sd_f:=as.character(cvr_sd_f)]
+DF4[,table(cvr_sd_f)]
+
+set.seed(200)
+trainIndex_F <- createDataPartition(DF4$cvr_sd_f, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex_F)
+
+L0_train_F<-DF4[trainIndex_F]
+L0_train_F[,table(cvr_sd_f)]
+
+L0_val_F<-DF4[-trainIndex_F]
+L0_val_F[,table(cvr_sd_f)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_F<-merge(GT_c1,L0_train_F,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t,col="red")
+str(GT_c_l0_t_F@data)
+
+GT_c_l0_v_F<-merge(GT_c1,L0_val_F,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v)
+str(GT_c_l0_v_F@data)
+
+### Supervised class with rstoolbox and rf
+set.seed(20)
+beginCluster(7)
+SC1_allclass<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_F,responseCol="cvr_sd_f.y",valData=GT_c_l0_v_F,polygonBasedCV=F,predict=T,
+                    predType="raw",filename=NULL)
+endCluster()
+beep(3)
+saveRSTBX(SC1_allclass,"Data_out/models/SC1_allclass",format="raster")
+SC1_allclass$classMapping
+
+plot(SC1_wet$map, colNA=1, main="cover over wet")
+writeRaster(SC1_wet$map,"Data_out/models/SC1_wet.tif")
 
 
 ################################################################ 
@@ -328,12 +377,12 @@ SC1_shells$classMapping
 ###Isolating shells area
 shells_mask<-shellsmap==2
 shells_mask[shells_mask==0]<-NA # turn wet area (coded zero) into NA
-plot(shells_mask, colNA=1)
+#plot(shells_mask, colNA=1)
 writeRaster(shells_mask,"Data_out/Habitat_classes/Level0/shells_mask_valtot.tif",overwrite=T)
 
 mask_shells_others<-shellsmap==1
 mask_shells_others[mask_shells_others==0]<-NA # turn wet area (coded zero) into NA
-plot(mask_shells_others, colNA=1)
+#plot(mask_shells_others, colNA=1)
 writeRaster(mask_shells_others,"Data_out/mask/mask_shells_others_valtot.tif",overwrite=T)
 
 area_shells<-sum(shells_mask[shells_mask==1])*res(shells_mask)[1]^2*10^-6 #calculate dry area size in Km2
@@ -466,31 +515,32 @@ GT_c_l0_v_sed<-merge(GT_c1,L0_val_sed,by="Point",all.x=F,all.y=T)
 sat_sed<-stack("Data_out/Stack/sat_sed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
 sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #Remaining area after isolating macro, rocks and shells
 beep(2)
-
+sat_bsed<-sat_WD_all ##same masked area used to separate wet from dry Use allyas this mask
 
 ### ALL AREA (This is the best performing separation of bare sediment (including waterbody) vs uca. Used )
 set.seed(1111)
 beginCluster(7)
-SC1_sedmnt0<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_sed,responseCol="sedmnt0.y",valData=GT_c_l0_v_sed,polygonBasedCV=F,predict=T,
-                        predType="raw",filename="Data_out/Class_map/SC1_sedmnt0_valtot.tif")
+SC1_sedmnt0<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t,responseCol="sedmnt0.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+                        predType="raw",filename=NULL)
 endCluster()
 beep(3)
 saveRSTBX(SC1_sedmnt0,"Data_out/models/SC1_sedmnt0",format = "raster",overwrite=T)
+beep(3)
 SC1_sedmnt0<-readRSTBX("Data_out/models/SC1_sedmnt0.tif")
 
 
-plot(SC1_sedmnt0$map, colNA=1,main="Bare Sed VS Uca VS flooded sed")
+plot(SC1_sedmnt0$map,col=c("khaki1","grey45"), colNA=1,main="Bare Sed VS Uca")
 sedmnt0map<-SC1_sedmnt0$map
 SC1_sedmnt0$classMapping
 
 ad<-drawExtent()
 adp<-crop(SC1_sedmnt0$map,ad)
-plot(adp,colNA=1,col=c("white","red"))
+plot(adp,colNA=1,col=c("khaki1","grey45"),main="Bare Sed VS Uca")
 
 ###Isolating bare sediment areas
 bare_sediment_mask<-sedmnt0map==1
 bare_sediment_mask[bare_sediment_mask==0]<-NA # turn wet area (coded zero) into NA
-plot(bare_sediment_mask, colNA=1)
+#plot(bare_sediment_mask, colNA=1)
 writeRaster(bare_sediment_mask,"Data_out/Habitat_classes/bare_sediment_mask_valtot.tif",overwrite=T)
 
 area_bare_sediment<-sum(bare_sediment_mask[bare_sediment_mask==1])*res(bare_sediment_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
@@ -498,7 +548,7 @@ area_bare_sediment<-sum(bare_sediment_mask[bare_sediment_mask==1])*res(bare_sedi
 ##Isolating uca sediment
 uca_mask<-sedmnt0map==2
 uca_mask[uca_mask==0]<-NA # turn wet area (coded zero) into NA
-plot(uca_mask, colNA=1)
+#plot(uca_mask, colNA=1)
 writeRaster(uca_mask,"Data_out/Habitat_classes/uca_mask_valtot.tif",overwrite=T)
 
 area_uca_mask<-sum(uca_mask[uca_mask==1])*res(uca_mask)[1]^2*10^-6 #calculate bare sediment area size in Km2
