@@ -95,7 +95,7 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 
 ##########################################################################
 ##########################################################################
-### Supervised class with rstoolbox and rf: all classes all area
+### Supervised class of cover over with rstoolbox and rf: all classes all area
 set.seed(11)
 beginCluster(7)
 SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="cvr_vrA.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
@@ -127,8 +127,6 @@ plot(SC1_dry$map, colNA=1, main="cover over dry")
 SC1_dry$classMapping
 writeRaster(SC1_dry$map,"Data_out/models/SC1_dry.tif")
 
-
-
 xx<-drawExtent()
 adonga_dry<-crop(SC1_dry$map,xx)
 plot(adonga, colNA=1)
@@ -147,60 +145,11 @@ plot(SC1_wet$map, colNA=1, main="cover over wet")
 writeRaster(SC1_wet$map,"Data_out/models/SC1_wet.tif")
 
 
-#################################################
-#################### classification using all target habitat classes
 
-##Load GT polygons
-GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
-DF2<-data.table(GT_c1@data)
-str(DF2)
-
-
-##Split data in training + validation using caret balanced splitting: Use this for final validation
-DF3<-data.table(DF2)
-DF3[,table(cvr_sd_f)]
-DF4<-DF3[!(cvr_sd_f=="bare_sediment"),]
-str(DF4)
-DF4[,cvr_sd_f:=as.character(cvr_sd_f)]
-DF4[,table(cvr_sd_f)]
-
-set.seed(200)
-trainIndex_F <- createDataPartition(DF4$cvr_sd_f, p = .7, 
-                                  list = FALSE, 
-                                  times = 1)
-head(trainIndex_F)
-
-L0_train_F<-DF4[trainIndex_F]
-L0_train_F[,table(cvr_sd_f)]
-
-L0_val_F<-DF4[-trainIndex_F]
-L0_val_F[,table(cvr_sd_f)]
-
-###Introduce new columns on training and validation polygons
-GT_c_l0_t_F<-merge(GT_c1,L0_train_F,by="Point",all.x=F,all.y=T)
-#plot(GT_c_l0_t,col="red")
-str(GT_c_l0_t_F@data)
-
-GT_c_l0_v_F<-merge(GT_c1,L0_val_F,by="Point",all.x=F,all.y=T)
-#plot(GT_c_l0_v)
-str(GT_c_l0_v_F@data)
-
-### Supervised class with rstoolbox and rf
-set.seed(20)
-beginCluster(7)
-SC1_allclass<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_F,responseCol="cvr_sd_f.y",valData=GT_c_l0_v_F,polygonBasedCV=F,predict=T,
-                    predType="raw",filename=NULL)
-endCluster()
-beep(3)
-saveRSTBX(SC1_allclass,"Data_out/models/SC1_allclass",format="raster")
-SC1_allclass$classMapping
-
-plot(SC1_wet$map, colNA=1, main="cover over wet")
-writeRaster(SC1_wet$map,"Data_out/models/SC1_wet.tif")
-
-
-################################################################ 
-###individual classification schemes
+############################################################################################
+###############################################################################################
+################################################################ ############################
+###################### individual classification schemes #################################
 
 
 #################### macroalgae #################################
