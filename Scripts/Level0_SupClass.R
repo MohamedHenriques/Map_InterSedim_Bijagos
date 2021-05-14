@@ -462,14 +462,15 @@ GT_c_l0_v_sed<-merge(GT_c1,L0_val_sed,by="Point",all.x=F,all.y=T)
 #writeRaster(sat_sed_wet,"Data_out/Stack/sat_sed_wet_valtot.tif",overwrite=T)
 
 sat_sed<-stack("Data_out/Stack/sat_sed_valtot.tif") #made from the remaining area after excluding macroalgae, rock and shell areas
-sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #Remaining area after isolating macro, rocks and shells
+#sat_bsed<-stack("Data_out/Stack/sat_bsed_valtot.tif") #Remaining area after isolating macro, rocks and shells
 beep(2)
-sat_bsed<-sat_WD_all ##same masked area used to separate wet from dry Use allyas this mask
+sat_bsed_uca<-sat_WD_all ##same masked area used to separate wet from dry Use allyas this mask
+sat_bsed_uca<-stack("Data_out/Stack/sat_WD_all_valtot.tif") ##same masked area used to separate wet from dry Use allyas this mask
 
 ### ALL AREA (This is the best performing separation of bare sediment (including waterbody) vs uca. Used )
 set.seed(1111)
 beginCluster(7)
-SC1_sedmnt0<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t,responseCol="sedmnt0.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1_sedmnt0<-superClass(img=sat_bsed_uca,model="rf",trainData=GT_c_l0_t,responseCol="sedmnt0.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                         predType="raw",filename=NULL)
 endCluster()
 beep(3)

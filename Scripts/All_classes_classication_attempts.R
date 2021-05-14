@@ -69,6 +69,7 @@ SC1_allclass<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_F,responseCol="c
 endCluster()
 beep(3)
 saveRSTBX(SC1_allclass,"Data_out/models/SC1_allclass",format="raster")
+SC1_allclass<-readRSTBX("Data_out/models/SC1_allclass.tif")
 SC1_allclass$classMapping
 
 plot(SC1_allclass$map, colNA=1, main="cover over wet")
@@ -124,6 +125,7 @@ SC1_grainclass<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_F1,respon
 endCluster()
 beep(3)
 saveRSTBX(SC1_grainclass,"Data_out/models/SC1_grainclass",format="raster")
+SC1_grainclass<-readRSTBX("Data_out/models/SC1_grainclass.tif")
 SC1_grainclass$classMapping
 
 plot(SC1_grainclass$map, colNA=1, main="grain size")
@@ -153,7 +155,7 @@ DF4[,table(cvr_sd_f)]
 DF5<-DF4[,grain_uca_bsed:=cvr_sd_f][!(grain_uca_bsed=="macroalgae"|grain_uca_bsed=="rock"|grain_uca_bsed=="shell")]
 DF5[,table(grain_uca_bsed)]
 
-DF6<-DF5[covr_vrA=="bare_sediment"]
+DF6<-DF5[cvr_vrA=="bare_sediment"]
 DF6[,table(grain_uca_bsed)]
 
 set.seed(200)
@@ -178,13 +180,23 @@ GT_c_l0_v_Fbs<-merge(GT_c1,L0_val_Fbs,by="Point",all.x=F,all.y=T)
 str(GT_c_l0_v_Fbs@data)
 
 ### Supervised class with rstoolbox and rf
+
+sat_bsed_uca<-stack("Data_out/Stack/sat_WD_all_valtot.tif") ##Created in script Level0_SupClass.R
+bare_sediment_mask<-raster("Data_out/Habitat_classes/bare_sediment_mask_valtot.tif")
+
+beginCluster(7)
+sat_bsed<-mask(sat_bsed_uca,bare_sediment_mask)
+endCluster()
+beep(3)
+
 set.seed(20)
 beginCluster(7)
 SC1_grainclass_bs<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_Fbs,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fbs,polygonBasedCV=F,predict=T,
                               predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_bs,"Data_out/models/SC1_grainclass_bs",format="raster")
+saveRSTBX(SC1_grainclass_bs,"Data_out/models/SC1_grainclass_bs",format="raster",overwrite=F)
+SC1_grainclass_bs<-readRSTBX("Data_out/models/SC1_grainclass_bs.tif")
 SC1_grainclass_bs$classMapping
 
 plot(SC1_grainclass_bs$map, colNA=1, main="grain size")
@@ -192,7 +204,7 @@ plot(SC1_grainclass_bs$map, colNA=1, main="grain size")
 
 ################ for UCA now ##########
 
-DF7<-DF5[covr_vrA=="uca"]
+DF7<-DF5[cvr_vrA=="uca"]
 DF7[,table(grain_uca_bsed)]
 
 set.seed(200)
@@ -210,20 +222,29 @@ L0_val_Fuca[,table(grain_uca_bsed)]
 ###Introduce new columns on training and validation polygons
 GT_c_l0_t_Fuca<-merge(GT_c1,L0_train_Fuca,by="Point",all.x=F,all.y=T)
 #plot(GT_c_l0_t,col="red")
-str(GT_c_l0_t_Fuca@data)
+#str(GT_c_l0_t_Fuca@data)
 
 GT_c_l0_v_Fuca<-merge(GT_c1,L0_val_Fuca,by="Point",all.x=F,all.y=T)
 #plot(GT_c_l0_v)
-str(GT_c_l0_v_Fuca@data)
+#str(GT_c_l0_v_Fuca@data)
 
 ### Supervised class with rstoolbox and rf
+sat_bsed_uca<-stack("Data_out/Stack/sat_WD_all_valtot.tif") ##Created in script Level0_SupClass.R
+uca_mask<-raster("Data_out/Habitat_classes/uca_mask_valtot.tif") ##Created in script Level0_SupClass.R
+
+beginCluster(7)
+crop1<-crop(sat_bsed_uca,uca_mask)
+sat_uca<-mask(crop1,uca_mask)
+endCluster()
+beep(3)
+
 set.seed(20)
 beginCluster(7)
-SC1_grainclass_uca<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
+SC1_grainclass_uca<-superClass(img=sat_uca,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
                                predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_uca,"Data_out/models/SC1_grainclass_uca",format="raster")
+saveRSTBX(SC1_grainclass_uca,"Data_out/models/SC1_grainclass_uca",format="raster",overwrite=T)
 SC1_grainclass_uca$classMapping
 
 plot(SC1_grainclass_uca$map, colNA=1, main="grain size")
@@ -257,6 +278,7 @@ SC1_grainclass_bs_dry<-superClass(img=sat_sed_dry,model="rf",trainData=GT_c_l0_t
 endCluster()
 beep(3)
 saveRSTBX(SC1_grainclass_bs_dry,"Data_out/models/SC1_grainclass_bs_dry",format="raster")
+SC1_grainclass_bs_dry<-readRSTBX("Data_out/models/SC1_grainclass_bs_dry.tif")
 SC1_grainclass_bs_dry$classMapping
 
 plot(SC1_grainclass_bs_dry$map, colNA=1, main="grain size")
@@ -272,6 +294,7 @@ SC1_grainclass_uca_dry<-superClass(img=sat_sed_dry,model="rf",trainData=GT_c_l0_
 endCluster()
 beep(3)
 saveRSTBX(SC1_grainclass_uca_dry,"Data_out/models/SC1_grainclass_uca_dry",format="raster")
+SC1_grainclass_uca_dry<-readRSTBX("Data_out/models/SC1_grainclass_uca_dry.tif")
 SC1_grainclass_uca_dry$classMapping
 
 plot(SC1_grainclass_uca_dry$map, colNA=1, main="grain size")
@@ -289,6 +312,7 @@ SC1_grainclass_bs_wet<-superClass(img=sat_sed_wet,model="rf",trainData=GT_c_l0_t
 endCluster()
 beep(3)
 saveRSTBX(SC1_grainclass_bs_wet,"Data_out/models/SC1_grainclass_bs_wet",format="raster")
+SC1_grainclass_bs_wet<-readRSTBX("Data_out/models/SC1_grainclass_bs_wet.tif")
 SC1_grainclass_bs_wet$classMapping
 
 plot(SC1_grainclass_bs_wet$map, colNA=1, main="grain size")
@@ -304,6 +328,7 @@ SC1_grainclass_uca_wet<-superClass(img=sat_sed_wet,model="rf",trainData=GT_c_l0_
 endCluster()
 beep(3)
 saveRSTBX(SC1_grainclass_uca_wet,"Data_out/models/SC1_grainclass_uca_wet",format="raster")
+SC1_grainclass_uca_wet<-readRSTBX("Data_out/models/SC1_grainclass_uca_wet.tif")
 SC1_grainclass_uca_wet$classMapping
 
 plot(SC1_grainclass_uca_wet$map, colNA=1, main="grain size")
