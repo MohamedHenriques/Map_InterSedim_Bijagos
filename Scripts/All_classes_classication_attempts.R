@@ -186,6 +186,7 @@ bare_sediment_mask<-raster("Data_out/Habitat_classes/bare_sediment_mask_valtot.t
 
 beginCluster(7)
 sat_bsed<-mask(sat_bsed_uca,bare_sediment_mask)
+writeRaster(sat_bsed,"Data_out/Stack/sat_bsed",driver="raster")
 endCluster()
 beep(3)
 
@@ -233,8 +234,8 @@ sat_bsed_uca<-stack("Data_out/Stack/sat_WD_all_valtot.tif") ##Created in script 
 uca_mask<-raster("Data_out/Habitat_classes/uca_mask_valtot.tif") ##Created in script Level0_SupClass.R
 
 beginCluster(7)
-crop1<-crop(sat_bsed_uca,uca_mask)
-sat_uca<-mask(crop1,uca_mask)
+sat_uca<-mask(sat_bsed_uca,uca_mask)
+writeRaster(sat_uca,"Data_out/Stack/sat_uca.tif",overwrite=T)
 endCluster()
 beep(3)
 
@@ -256,15 +257,62 @@ plot(SC1_grainclass_uca$map, colNA=1, main="grain size")
 #####################################################################################################
 ################# Classification over dry and wet areas seperately #################################
 
+### Sat image for classification of all areas
 #dry_mask<-raster("Data_out/Habitat_classes/dry_mask_valtot.tif")
-sat_sed_dry<-mask(sat,dry_mask)
-writeRaster(sat_sed_dry,"Data_out/Stack/sat_sed_dry_valtot.tif",overwrite=T)
+sat_dry<-mask(sat,dry_mask) # To use for clasification of all areas
+writeRaster(sat_dry,"Data_out/Stack/sat_dry_valtot.tif",overwrite=T)
+sat_dry<-raster("Data_out/Stack/sat_dry_valtot.tif")
 
-#dry_wet<-raster("Data_out/Habitat_classes/wet_mask_valtot.tif")
-sat_sed_wet<-mask(sat,wet_mask)
+#wet_mask<-raster("Data_out/Habitat_classes/wet_mask_valtot.tif")
+sat_wet<-mask(sat,wet_mask) # To use for clasification of all areas
+writeRaster(sat_wet,"Data_out/Stack/sat_wet_valtot.tif",overwrite=T)
+beep(3)
+sat_wet<-raster("Data_out/Stack/sat_wet_valtot.tif")
+
+
+##Sat image for classification of areas combining bare sediment and uca
+#dry_mask<-raster("Data_out/Habitat_classes/dry_mask_valtot.tif")
+beginCluster(7)
+sat_sed_dry<-mask(sat_bsed_uca,dry_mask) # To use for clasification of only areas of bare sediment and uca
+writeRaster(sat_sed_dry,"Data_out/Stack/sat_sed_dry_valtot.tif",overwrite=T)
+sat_sed_dry<-raster("Data_out/Stack/sat_sed_dry_valtot.tif")
+
+#wet_mask<-raster("Data_out/Habitat_classes/wet_mask_valtot.tif")
+sat_sed_wet<-mask(sat_bsed_uca,wet_mask) # To use for clasification of only areas of bare sediment and uca
 writeRaster(sat_sed_wet,"Data_out/Stack/sat_sed_wet_valtot.tif",overwrite=T)
 beep(3)
+endCluster()
+sat_sed_wet<-raster("Data_out/Stack/sat_sed_wet_valtot.tif")
 
+## Sat image for classification of areas of bare sediment
+#dry_mask<-raster("Data_out/Habitat_classes/dry_mask_valtot.tif")
+#sat_bsed<-raster("Data_out/Stack/sat_bsed.tif")
+beginCluster(7)
+sat_bsed_dry<-mask(sat_bsed,dry_mask) # To use for clasification of only areas of bare sediment
+writeRaster(sat_bsed_dry,"Data_out/Stack/sat_bsed_dry_valtot.tif",overwrite=T)
+sat_bsed_dry<-raster("Data_out/Stack/sat_bsed_dry_valtot.tif")
+
+#wet_mask<-raster("Data_out/Habitat_classes/wet_mask_valtot.tif")
+sat_bsed_wet<-mask(sat_bsed,wet_mask) # To use for clasification of only areas of bare sediment
+writeRaster(sat_bsed_wet,"Data_out/Stack/sat_bsed_wet_valtot.tif",overwrite=T)
+beep(3)
+endCluster()
+sat_bsed_wet<-raster("Data_out/Stack/sat_bsed_wet_valtot.tif")
+
+## Sat image for classification of areas of uca
+#dry_mask<-raster("Data_out/Habitat_classes/dry_mask_valtot.tif")
+sat_uca<-raster("Data_out/Stack/sat_uca.tif")
+beginCluster(7)
+sat_uca_dry<-mask(sat_uca,dry_mask) # To use for clasification of only areas of bare sediment
+writeRaster(sat_uca_dry,"Data_out/Stack/sat_uca_dry_valtot.tif",overwrite=T)
+sat_uca_dry<-raster("Data_out/Stack/sat_uca_dry_valtot.tif")
+
+#wet_mask<-raster("Data_out/Habitat_classes/wet_mask_valtot.tif")
+sat_uca_wet<-mask(sat_uca,wet_mask) # To use for clasification of only areas of bare sediment
+writeRaster(sat_uca_wet,"Data_out/Stack/sat_uca_wet_valtot.tif",overwrite=T)
+beep(3)
+endCluster()
+sat_uca_wet<-raster("Data_out/Stack/sat_uca_wet_valtot.tif")
 
 ############### DRY AREAS #########################
 ###################################################
@@ -273,11 +321,11 @@ beep(3)
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_grainclass_bs_dry<-superClass(img=sat_sed_dry,model="rf",trainData=GT_c_l0_t_Fbs,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fbs,polygonBasedCV=F,predict=T,
+SC1_grainclass_bs_dry<-superClass(img=sat_bsed_dry,model="rf",trainData=GT_c_l0_t_Fbs,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fbs,polygonBasedCV=F,predict=T,
                               predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_bs_dry,"Data_out/models/SC1_grainclass_bs_dry",format="raster")
+saveRSTBX(SC1_grainclass_bs_dry,"Data_out/models/SC1_grainclass_bs_dry",format="raster",overwrite=T)
 SC1_grainclass_bs_dry<-readRSTBX("Data_out/models/SC1_grainclass_bs_dry.tif")
 SC1_grainclass_bs_dry$classMapping
 
@@ -289,11 +337,11 @@ plot(SC1_grainclass_bs_dry$map, colNA=1, main="grain size")
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_grainclass_uca_dry<-superClass(img=sat_sed_dry,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
+SC1_grainclass_uca_dry<-superClass(img=sat_uca_dry,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
                                predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_uca_dry,"Data_out/models/SC1_grainclass_uca_dry",format="raster")
+saveRSTBX(SC1_grainclass_uca_dry,"Data_out/models/SC1_grainclass_uca_dry",format="raster",overwrite=T)
 SC1_grainclass_uca_dry<-readRSTBX("Data_out/models/SC1_grainclass_uca_dry.tif")
 SC1_grainclass_uca_dry$classMapping
 
@@ -307,11 +355,11 @@ plot(SC1_grainclass_uca_dry$map, colNA=1, main="grain size")
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_grainclass_bs_wet<-superClass(img=sat_sed_wet,model="rf",trainData=GT_c_l0_t_Fbs,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fbs,polygonBasedCV=F,predict=T,
+SC1_grainclass_bs_wet<-superClass(img=sat_bsed_wet,model="rf",trainData=GT_c_l0_t_Fbs,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fbs,polygonBasedCV=F,predict=T,
                                   predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_bs_wet,"Data_out/models/SC1_grainclass_bs_wet",format="raster")
+saveRSTBX(SC1_grainclass_bs_wet,"Data_out/models/SC1_grainclass_bs_wet",format="raster",overwrite=T)
 SC1_grainclass_bs_wet<-readRSTBX("Data_out/models/SC1_grainclass_bs_wet.tif")
 SC1_grainclass_bs_wet$classMapping
 
@@ -323,11 +371,11 @@ plot(SC1_grainclass_bs_wet$map, colNA=1, main="grain size")
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_grainclass_uca_wet<-superClass(img=sat_sed_wet,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
+SC1_grainclass_uca_wet<-superClass(img=sat_uca_wet,model="rf",trainData=GT_c_l0_t_Fuca,responseCol="grain_uca_bsed",valData=GT_c_l0_v_Fuca,polygonBasedCV=F,predict=T,
                                    predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_grainclass_uca_wet,"Data_out/models/SC1_grainclass_uca_wet",format="raster")
+saveRSTBX(SC1_grainclass_uca_wet,"Data_out/models/SC1_grainclass_uca_wet",format="raster",overwrite=T)
 SC1_grainclass_uca_wet<-readRSTBX("Data_out/models/SC1_grainclass_uca_wet.tif")
 SC1_grainclass_uca_wet$classMapping
 
