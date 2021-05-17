@@ -11,7 +11,7 @@ if (OS == "windows"){
   print("ERROR: OS could not be identified")
 }
 
-packs<-c("randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+packs<-c("colorspace","randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
 npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
 if(length(npacks)) install.packages(npacks)
 #install_github("vqv/ggbiplot")
@@ -329,7 +329,10 @@ saveRSTBX(SC1_grainclass_bs_dry,"Data_out/models/SC1_grainclass_bs_dry",format="
 SC1_grainclass_bs_dry<-readRSTBX("Data_out/models/SC1_grainclass_bs_dry.tif")
 SC1_grainclass_bs_dry$classMapping
 
-plot(SC1_grainclass_bs_dry$map, colNA=1, main="grain size")
+p<-c("white","navajowhite4","lightgoldenrod1","lightgoldenrod","navajowhite2")
+pal <- brewer.pal(5,"Accent")
+
+plot(SC1_grainclass_bs_dry$map,col=pal, colNA=1, main="DRY AREAS - Bare sediment grain sizes")
 #writeRaster(SC1_grainclass_bs$map,"Data_out/models/SC1_grainclass_bs.tif")
 
 ################ for UCA now ##########
