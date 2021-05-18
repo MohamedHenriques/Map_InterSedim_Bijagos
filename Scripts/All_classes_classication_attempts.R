@@ -120,7 +120,7 @@ str(GT_c_l0_v_F1@data)
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_grainclass<-superClass(img=sat_bsed,model="rf",trainData=GT_c_l0_t_F1,responseCol="grain_uca_bsed",valData=GT_c_l0_v_F1,polygonBasedCV=F,predict=T,
+SC1_grainclass<-superClass(img=sat_bsed_uca,model="rf",trainData=GT_c_l0_t_F1,responseCol="grain_uca_bsed",valData=GT_c_l0_v_F1,polygonBasedCV=F,predict=T,
                            predType="raw",filename=NULL)
 endCluster()
 beep(3)
