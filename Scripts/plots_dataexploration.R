@@ -31,11 +31,16 @@ str(m2)
 
 table(is.na(m2))
 
+m2[(WD=="dry"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
+m2[(WD=="wet"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
+m2[(WD=="dry"&cvr_vrA=="uca"),table(cvr_sd_g)]
+m2[(WD=="wet"&cvr_vrA=="uca"),table(cvr_sd_g)]
+
 ##################################################################################################
 #####################################################################################################
 ###plots for uca
 
-melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","Class_22","WD","c_uca"),measure=c(7:8,10:26,28,33,38:42),variable.factor=F,value.factor=F)
+melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","Class_22","WD","c_uca","D50_um_","Mn_fw_p","Mn_fw_m","c_mcrph","c_water","uca"),measure=c(7:8,10:26,28,33,38:42),variable.factor=F,value.factor=F)
 str(melt1)
 melt1[,table(variable)]
 melt1[,table(cvr_sd_f)]
@@ -50,6 +55,40 @@ ggplot(melt1,aes(x=c_uca,y=value))+
   facet_wrap(.~variable,scales="free")+
   labs(x="Uca cover (%)",title="Green=median; Red=mean+-SE")+
   scale_x_continuous(breaks=seq(0,100,10))+
+  theme_bw()
+
+
+melt1_uca<-melt1[!(uca=="other"|cvr_sd_f=="macroalgae"|cvr_sd_f=="rock"|cvr_sd_f=="shell")]
+
+melt1_bs<-melt1[!(uca=="uca"|cvr_sd_f=="macroalgae"|cvr_sd_f=="rock"|cvr_sd_f=="shell")]
+melt1_bs_bs<-melt1_bs[cvr_sd_f=="bare_sediment_beach_sand"]
+melt1_bs_bs[,table(cvr_sd_f=="bare_sediment_beach_sand")]
+melt1_bs_bs[WD=="dry",table(WD)]
+
+ggplot(melt1_bs,aes(x=Mn_fw_p,fill=cvr_sd_g))+
+  geom_density()
+
+ggplot(melt1_uca,aes(x=D50_um_,fill=cvr_sd_g))+
+  geom_density()
+
+
+ggplot(melt1_bs[WD=="dry"],aes(x=Mn_fw_p,y=value,col=cvr_sd_f))+
+  stat_summary(fun=median,na.rm=T, col="green")+
+  stat_summary(na.rm=T)+
+  labs(x="D50_um",title="bare_sediment dry")+
+  facet_wrap(.~variable,scales="free")+
+  stat_smooth(na.rm=T, method="gam")+
+  #scale_x_continuous(breaks=seq(0,100,10))+
+  theme_bw()
+  
+ggplot(melt1_bs[WD=="dry"],aes(x=Mn_fw_p,y=cvr_sd_g,col=cvr_sd_g))+
+  stat_summary(na.rm=T,size=1)+
+  stat_summary(fun=median,na.rm=T, col="green",size=1,shape=17)+
+  geom_point(col="lightgrey",size=2)+
+  labs(x="D50_um",title="bare_sediment dry")+
+  #facet_wrap(.~variable,scales="free")+
+  #stat_smooth(na.rm=T, method="gam")+
+  #scale_x_continuous(breaks=seq(0,100,10))+
   theme_bw()
 
 ###Only for sediment
