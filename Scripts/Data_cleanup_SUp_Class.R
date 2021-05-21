@@ -222,7 +222,7 @@ DF[c_water>=85,cover_over:="water_body"]
 DF[,WB:=ifelse(c_water>=30,"flooded","dry")]
 DF[,unique(WB)]
 
-DF[,WD:=ifelse(c_water<30,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
+DF[,WD:=ifelse(c_water<20,"dry","wet")] # this is the mark that provides the highest accuracy and kappa
 DF[,table(WD)]
 
 

@@ -63,19 +63,22 @@ writeRaster(sat_wet,"Data_out/Stack/sat_wet.tif")
 
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
-DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
+DF3[,covr_vrA:=as.character(cover_over)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
+DF3[,table(covr_vrA)]
+DF3[,covr_vrA1:=covr_vrA][covr_vrA1=="bare_sediment"&WD=="wet",covr_vrA1:="bare_sediment_wet"][covr_vrA1=="bare_sediment"&WD=="dry",covr_vrA1:="bare_sediment_dry"]
+DF3[,table(covr_vrA1)]
 
 set.seed(10)
-trainIndex <- createDataPartition(DF3$covr_vrA, p = .7, 
+trainIndex <- createDataPartition(DF3$covr_vrA1, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L0_train<-DF3[trainIndex]
-L0_train[,table(covr_vrA)]
+L0_train[,table(covr_vrA1)]
 
 L0_val<-DF3[-trainIndex]
-L0_val[,table(covr_vrA)]
+L0_val[,table(covr_vrA1)]
 
 
 ###Introduce new columns on training and validation polygons
@@ -98,7 +101,7 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 ### Supervised class of cover over with rstoolbox and rf: all classes all area
 set.seed(11)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="cvr_vrA.y",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA1",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -112,7 +115,7 @@ writeRaster(SC1_all_tif,"Data_out/models/SC1_all.tif")
 
 xx<-drawExtent()
 adonga_t<-crop(SC1$map,xx)
-plot(adonga_t, colNA=1,col=c("lightgrey","darkgreen","red","blue","grey30"))
+plot(adonga_t, colNA=1,col=c("lightgrey","darkslategray1","forestgreen","red","blue","grey30"))
 
 ### Supervised class with rstoolbox and rf: dry area
 set.seed(12)

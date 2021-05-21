@@ -37,25 +37,43 @@ str(DF2)
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
 DF3[,table(cvr_sd_g)]
-DF4<-DF3[!(cvr_sd_g=="bare_sediment_NA"),]
+setkey(DF3,cvr_sd_g)
+DF3["bare_sediment_NA"]
+
+DF4<-DF3[!(cvr_sd_g=="bare_sediment_NA"|cvr_sd_g=="uca_NA"),] ##Removing data points for which there is no data on sediment grain size
+DF4[,table(cvr_sd_g)]
 str(DF4)
+
 DF4[,cvr_sd_g:=as.character(cvr_sd_g)]
 DF4[,table(cvr_sd_g)]
-DF4[cvr_sd_g=="uca_NA",table(Sd_clss)]
-DF5<-DF4[!(cvr_sd_g=="uca_NA"),]
-DF5[,table(cvr_sd_g)]
+DF4[,table(WD)]
 
+DF4[,all_g_WD:=paste(cvr_sd_g,WD,sep="_")]
+DF4[,table(all_g_WD)]
+DF4[all_g_WD=="shell_dry"|all_g_WD=="shell_wet",all_g_WD:="shell"]
+DF4[all_g_WD=="rock_dry",all_g_WD:="rock"]
+
+DF4[,Point:=as.character(Point)]
+x<-DF4[,.(table(Point,all_g_WD))]
+x1<-dcast.data.table(x,Point~all_g_WD,fun.aggregate = sum)
+x1$tot<-apply(x1[,-1],1,sum)
+
+DF4[,table(all_g_WD)]
+DF5<-DF4[!all_g_WD=="uca_Medium Sand_dry"] ## remove class with only one data point
+DF5[,table(all_g_WD)]
+
+### Devide data for validation (30% for validation)
 set.seed(200)
-trainIndex_G <- createDataPartition(DF5$cvr_sd_g, p = .7, 
+trainIndex_G <- createDataPartition(DF5$all_g_WD, p = .7, 
                                     list = FALSE, 
                                     times = 1)
 head(trainIndex_G)
 
 L0_train_G<-DF5[trainIndex_G]
-L0_train_G[,table(cvr_sd_g)]
+L0_train_G[,table(all_g_WD)]
 
 L0_val_G<-DF5[-trainIndex_G]
-L0_val_G[,table(cvr_sd_g)]
+L0_val_G[,table(all_g_WD)]
 
 ###Introduce new columns on training and validation polygons
 GT_c_l0_t_G<-merge(GT_c1,L0_train_G,by="Point",all.x=F,all.y=T)
@@ -69,15 +87,19 @@ str(GT_c_l0_v_G@data)
 ### Supervised class with rstoolbox and rf
 set.seed(20)
 beginCluster(7)
-SC1_allclass_G<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_G,responseCol="cvr_sd_g.y",valData=GT_c_l0_v_G,polygonBasedCV=F,predict=T,
+SC1_allclass_G<-superClass(img=sat,model="rf",trainData=GT_c_l0_t_G,responseCol="all_g_WD",valData=GT_c_l0_v_G,polygonBasedCV=F,predict=T,
                          predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_allclass_G,"Data_out/models/SC1_allclass_G",format="raster")
+saveRSTBX(SC1_allclass_G,"Data_out/models/SC1_allclass_G",format="raster",overwrite=T)
 SC1_allclass_G<-readRSTBX("Data_out/models/SC1_allclass_G.tif")
 SC1_allclass_G$classMapping
 
-plot(SC1_allclass$map, colNA=1, main="cover over wet")
+plot(SC1_allclass_G$map, colNA=1, main="cover over wet")
+d<-drawExtent()
+d1<-crop(SC1_allclass_G$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
 writeRaster(SC1_allclass$map,"Data_out/models/SC1_allclass.tif")
 
 
