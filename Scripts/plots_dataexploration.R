@@ -40,22 +40,33 @@ m2[(WD=="wet"&cvr_vrA=="uca"),table(cvr_sd_g)]
 #####################################################################################################
 ###plots for uca
 
-melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","Class_22","WD","c_uca","D50_um_","Mn_fw_p","Mn_fw_m","c_mcrph","c_water","uca"),measure=c(7:8,10:26,28,33,38:42),variable.factor=F,value.factor=F)
+melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","Class_22","WD","c_uca","D50_um_","Mn_fw_p","Mn_fw_m","c_mcrph","c_water","c_rocks","c_shlls","uca"),measure=c(7:8,10:26,28,33,38:42),variable.factor=F,value.factor=F)
 str(melt1)
 melt1[,table(variable)]
 melt1[,table(cvr_sd_f)]
 melt1[,table(Class_22)]
 
 ### All types of sediment together
-ggplot(melt1,aes(x=c_uca,y=value))+
-  #geom_point(position = position_jitter())+
-  stat_summary(na.rm=T, col="red")+
-  stat_summary(fun=median,na.rm=T, col="green")+
-  stat_smooth(na.rm=T, method="gam")+
+ggplot(melt1,aes(x=c_rocks,y=value))+
+  stat_summary(fun.y = mean,aes(col=WD,group=WD),
+               fun.ymin = function(x) mean(x) - sd(x), 
+               fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange",na.rm=T,position = position_jitter()) +
+  #stat_summary(fun=median,na.rm=T, col="green")+
+  stat_summary(fun=mean,na.rm=T, geom="line",aes(col=WD,group=WD))+
+  stat_summary(fun.y = mean,col=1,
+               fun.ymin = function(x) mean(x) - sd(x), 
+               fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange",na.rm=T,position = position_jitter()) +
+  stat_summary(fun=mean,na.rm=T, geom="line",col=1,lty=2)+
+  #stat_smooth(na.rm=T, method="gam")+
   facet_wrap(.~variable,scales="free")+
-  labs(x="Uca cover (%)",title="Green=median; Red=mean+-SE")+
+  labs(x="shells cover (%)",title="Green=median; Red=mean+-SE")+
   scale_x_continuous(breaks=seq(0,100,10))+
   theme_bw()
+
+##wet VS dry
+
 
 
 melt1_uca<-melt1[!(uca=="other"|cvr_sd_f=="macroalgae"|cvr_sd_f=="rock"|cvr_sd_f=="shell")]

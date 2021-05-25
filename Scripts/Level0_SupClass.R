@@ -63,22 +63,32 @@ writeRaster(sat_wet,"Data_out/Stack/sat_wet.tif")
 
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
-DF3[,covr_vrA:=as.character(cover_over)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
+DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
 DF3[,table(covr_vrA)]
-DF3[,covr_vrA1:=covr_vrA][covr_vrA1=="bare_sediment"&WD=="wet",covr_vrA1:="bare_sediment_wet"][covr_vrA1=="bare_sediment"&WD=="dry",covr_vrA1:="bare_sediment_dry"]
+DF3[,covr_vrA1:=covr_vrA][covr_vrA1=="macroalgae"&WD=="wet",covr_vrA1:="macroalgae_wet"][covr_vrA1=="macroalgae"&WD=="dry",covr_vrA1:="macroalgae_dry"]
 DF3[,table(covr_vrA1)]
+DF3[,covr_vrA2:=covr_vrA][covr_vrA2=="macroalgae"&WD=="wet",covr_vrA2:="macroalgae_wet"][covr_vrA2=="macroalgae"&WD=="dry",covr_vrA2:="macroalgae_dry"][covr_vrA2=="shell"&WD=="wet",covr_vrA2:="shell_wet"][covr_vrA2=="shell"&WD=="dry",covr_vrA2:="shell_dry"]
+DF3[,table(covr_vrA2)]
+DF3[,covr_vrA3:=covr_vrA][covr_vrA3=="macroalgae"&WD=="wet",covr_vrA3:="macroalgae_wet"][covr_vrA3=="macroalgae"&WD=="dry",covr_vrA3:="macroalgae_dry"][covr_vrA3=="shell"&WD=="wet",covr_vrA3:="shell_wet"][covr_vrA3=="shell"&WD=="dry",covr_vrA3:="shell_dry"][covr_vrA3=="bare_sediment"&WD=="wet",covr_vrA3:="bare_sediment_wet"][covr_vrA3=="bare_sediment"&WD=="dry",covr_vrA3:="bare_sediment_dry"]
+DF3[,table(covr_vrA3)]
+DF3[,covr_vrA4:=covr_vrA3][covr_vrA4=="uca"&WD=="wet",covr_vrA4:="uca_wet"][covr_vrA4=="uca"&WD=="dry",covr_vrA4:="uca_dry"]
+DF3[,table(covr_vrA4)]
+DF3[,covr_vrA5:=covr_vrA][covr_vrA5=="bare_sediment"&WD=="wet",covr_vrA5:="bare_sediment_wet"][covr_vrA5=="bare_sediment"&WD=="dry",covr_vrA5:="bare_sediment_dry"][covr_vrA5=="uca"&WD=="wet",covr_vrA5:="uca_wet"][covr_vrA5=="uca"&WD=="dry",covr_vrA5:="uca_dry"]
+DF3[,table(covr_vrA5)]
+DF3[,covr_vrA6:=covr_vrA][covr_vrA6=="bare_sediment",covr_vrA6:="sediments"][covr_vrA6=="uca",covr_vrA6:="sediments"]
+DF3[,table(covr_vrA6)]
 
 set.seed(10)
-trainIndex <- createDataPartition(DF3$covr_vrA1, p = .7, 
+trainIndex <- createDataPartition(DF3$covr_vrA6, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L0_train<-DF3[trainIndex]
-L0_train[,table(covr_vrA1)]
+L0_train[,table(covr_vrA6)]
 
 L0_val<-DF3[-trainIndex]
-L0_val[,table(covr_vrA1)]
+L0_val[,table(covr_vrA6)]
 
 
 ###Introduce new columns on training and validation polygons
@@ -94,28 +104,58 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 #plot(GT_c_l0_v)
 #str(GT_c_l0_v@data)
 
+### selection of bands to use
+sat1<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08_20200204","B09_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDWI","mNDWI","NDVI","RVI","VH_VV","intensity","rededge_multi"))
+names(sat1)
 
+sat2<-subset(sat,c("B08_20200204","B09_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDVI","RVI","VH_VV","intensity","rededge_multi"))
+names(sat2)
 
 ##########################################################################
 ##########################################################################
 ### Supervised class of cover over with rstoolbox and rf: all classes all area
-set.seed(11)
+start<-Sys.time()
+
+set.seed(12)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA1",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster")
+end<-Sys.time()
+dif<-end-start
+
+saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster",overwrite=F)
 SC1<-readRSTBX("Data_out/models/SC1_all")
 
-SC1$classMapping
-plot(SC1$map,colNA=1,col=c("lightgrey","green","red","blue","grey30"))
-SC1_all_tif<-SC1$map
+SC1$model$finalModel$importance
+
+########
+start<-Sys.time()
+
+set.seed(12)
+beginCluster(7)
+SC1_sel<-superClass(img=sat1,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+                predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif<-end-start
+
+
+saveRSTBX(SC1_sel,"Data_out/models/SC1_all_sel",fomat="raster",overwrite=F)
+SC1_sel<-readRSTBX("Data_out/models/SC1_all_sel")
+
+SC1_sel$model$finalModel$importance
+
+SC1_sel$classMapping
+plot(SC1_sel$map,colNA=1,col=c("green","red","lightgrey","blue"))
+SC1_sel_tif<-SC1$map
 writeRaster(SC1_all_tif,"Data_out/models/SC1_all.tif")
 
 xx<-drawExtent()
-adonga_t<-crop(SC1$map,xx)
-plot(adonga_t, colNA=1,col=c("lightgrey","darkslategray1","forestgreen","red","blue","grey30"))
+adonga_t<-crop(SC1_sel$map,xx)
+plot(adonga_t, colNA=1,col=c("forestgreen","red","lightgrey","blue"))
 
 ### Supervised class with rstoolbox and rf: dry area
 set.seed(12)
