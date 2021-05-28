@@ -79,8 +79,10 @@ extent(S2_20200204)==extent(intmask)
 extent(S1_c)==extent(intmask)
 
 ## Resample sat image to enable stacking
+beginCluster(7)
 S1_cr<-resample(S1_c,intmask,method="bilinear")
 #plot(S1_cr)
+endCluster()
 extent(S1_cr)==extent(intmask)
 
 ##Stack images
@@ -101,6 +103,7 @@ NDMI1<-(all_m$B08A_20200204-all_m$B11_20200204)/(all_m$B08A_20200204+all_m$B11_2
 NDVI<-(all_m$B08_20200204-all_m$B04_20200204)/(all_m$B08_20200204+all_m$B04_20200204)
 RVI<-(4*all_m$S1_20200128_VH)/(all_m$S1_20200128_VV+all_m$S1_20200128_VH)
 VH_VV<-(all_m$S1_20200128_VH)/(all_m$S1_20200128_VV)
+MSAVI2<-(2*all_m$B08_20200204+1-sqrt((2*all_m$B08_20200204+1)^2-8*(all_m$B08_20200204-all_m$B04_20200204)))/2
 
 beep(3)
 
@@ -111,6 +114,7 @@ plot(NDMI1)
 plot(NDVI)
 plot(RVI)
 plot(VH_VV)
+plot(MSAVI2)
 
 ###Load new bands with indexes created by belo
 path1<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Files_sat_cap/Sat_image"
@@ -124,15 +128,15 @@ for(i in 2:length(files1)) {
 S2_index
 names(S2_index)
 
-sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,S2_index)
-names(sat)[15:21]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV")
+sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,S2_index)
+names(sat)[15:22]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2")
 
 #plot(sat)
 writeRaster(sat,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
 sat<-stack("Data_out/Stack/Final_stack.tif")
 names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
               "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
               "visible_multi")
 
 ## Extract values 

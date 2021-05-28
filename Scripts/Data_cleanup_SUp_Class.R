@@ -11,7 +11,7 @@ lapply(packs,require,character.only=T)
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
 names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
               "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
               "visible_multi")
 
 ##Load GT polygons (without Adonga)
