@@ -35,9 +35,55 @@ m2[(WD=="dry"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
 m2[(WD=="wet"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
 m2[(WD=="dry"&cvr_vrA=="uca"),table(cvr_sd_g)]
 m2[(WD=="wet"&cvr_vrA=="uca"),table(cvr_sd_g)]
+m2[,table(uca)]
+
+order(m2[uca=="uca",unique(mud)])
+
+m2[,Grain_EU:=ifelse(mud<10,"sand",ifelse(mud>=10&mud<25,"muddy_sand",ifelse(mud>=25&mud<60,"mixed",ifelse(mud>=60,"muddy",NA))))][cvr_vrA=="bare_sediment"|cvr_vrA=="uca",Final_grain_EU:=paste(cvr_vrA,Grain_EU,sep="_")]
+m2[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand",Final_grain_EU1:="bare_sediment_mixed"][Final_grain_EU=="uca_muddy_sand",Final_grain_EU1:="uca_mixed"]
+m2[,table(Final_grain_EU1)]
+m2[,table(Final_grain_EU)]
+m2[mud==10,.(Final_grain_EU,Final_grain_EU1,mud)]
+
+
+m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
+
+m2[,covr_vrA6:=cvr_vrA][covr_vrA6=="bare_sediment",covr_vrA6:="sediments"][covr_vrA6=="uca",covr_vrA6:="sediments"]
+m2[,table(covr_vrA6)]
 
 ##################################################################################################
 #####################################################################################################
+
+ggplot(m2[!(is.na(Mn_fw_m)|is.na(Final_grain_EU))],aes(x=Mn_fw_p, fill=Final_grain_EU))+
+  geom_histogram(col="white",binwidth=.02)+
+  #stat_summary()+
+  theme_bw()+
+  facet_grid(~uca)+
+  #scale_x_continuous(breaks=seq(0,500,25),limits=c(0,500))+
+  labs(title="uca areas")
+
+ggplot(m2[!(is.na(mud)|is.na(Final_grain_EU))],aes(x=mud, fill=Final_grain_EU))+
+  geom_histogram(binwidth=.5,col="white")+
+  #stat_summary()+
+  theme_bw()+
+  facet_grid(~uca)+
+  scale_x_continuous(breaks=seq(0,100,10))+
+  labs(title="uca areas")
+
+
+ggplot(m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"],aes(x=Mn_fw_m,y=intensity, col=cvr_sd_f))+
+  #geom_point()+
+  stat_summary(na.rm=T,pch=17,size=1,alpha=.5)+
+  theme_bw()+
+  #scale_x_continuous(breaks=seq(0,4,0.1))+
+  scale_x_continuous(breaks=seq(0,1000,50))+
+  #scale_x_continuous(breaks=seq(90,450,10))+
+  #scale_y_continuous(breaks=seq(60,210,10),limits = c(50,210))+
+  #scale_y_continuous(breaks=seq(600,2300,50),limits = c(600,2300))+
+  labs(title="Bare_sediment areas")
+
+ggplot()
+
 ###plots for uca
 
 melt1<-melt(m2,id=c("cvr_sd_f","cvr_sd_g","Class_22","WD","c_uca","D50_um_","Mn_fw_p","Mn_fw_m","c_mcrph","c_water","c_rocks","c_shlls","uca"),measure=c(7:8,10:26,28,33,38:42),variable.factor=F,value.factor=F)
@@ -143,48 +189,6 @@ ggplot(melt2[Class_22=="muddy_sand"|Class_22=="sand"|Class_22=="sandy_mud"],aes(
   theme_bw()
 
 
-################################################################
-################################################################
-##Compute general correlations between numerical variables
-
-num<-names(m2)[sapply(m2, is.numeric)]
-dbc<-m2[,c(num),with=F]
-dbc1<-sapply(dbc, as.numeric)
-res<-rcorr(as.matrix(dbc))
-resr<-round(res$r,2)
-resp<-round(res$P,2)
-
-# Insignificant correlation are crossed
-corrplot(resr,type="upper",order="original",p.mat=resp,sig.level=0.05,insig="pch",method="circle",diag=T)
-
-
-##Correlation plot for dry and wet areas seperately
-m2_dry<-m2[WD=="dry"]
-m2_wet<-m2[WD=="wet"]
-
-###Dry
-num_dry<-names(m2_dry)[sapply(m2_dry, is.numeric)]
-dbc_dry<-m2_dry[,c(num_dry),with=F]
-dbc1_dry<-sapply(dbc_dry, as.numeric)
-res_dry<-rcorr(as.matrix(dbc_dry))
-resr_dry<-round(res_dry$r,2)
-resp_dry<-round(res_dry$P,2)
-
-# Insignificant correlation are crossed
-corrplot(resr_dry,type="upper",order="original",p.mat=resp,sig.level=0.05,insig="pch",method="circle",diag=T,main="Dry areas <30% water")
-
-
-
-###wet
-num_wet<-names(m2_wet)[sapply(m2_wet, is.numeric)]
-dbc_wet<-m2_wet[,c(num_wet),with=F]
-dbc1_wet<-sapply(dbc_wet, as.numeric)
-res_wet<-rcorr(as.matrix(dbc_wet))
-resr_wet<-round(res_wet$r,2)
-resp_wet<-round(res_wet$P,2)
-
-# Insignificant correlation are crossed
-corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig="pch",method="circle",diag=T,main="wet areas >=30% water")
 
 
 #####################################################################################
@@ -197,6 +201,46 @@ str(n)
 rndid<-with(m2, ave(B02_20200204,cvr_vrA,FUN=function(x) {sample.int(length(x))}))
 m3_cvrA<-m2[rndid<=min(n$N),]
 m3_cvrA[,table(cvr_vrA)]
+
+
+##Database for uca vs bare sediment
+m2_ucabs<-m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"]
+
+set.seed(2)
+n<-m2_ucabs[,.(table(uca))]
+str(n)
+rndid<-with(m2_ucabs, ave(B02_20200204,uca,FUN=function(x) {sample.int(length(x))}))
+m3_ucabs<-m2_ucabs[rndid<=min(n$N),]
+m3_ucabs[,table(uca)]
+
+
+##Database for sediment grain types uca
+m2[,finos_class:=ifelse(mud<10,"sandy","muddy")]
+m2[,table(finos_class)]
+m2_uca<-m2[cvr_vrA=="uca"]
+
+set.seed(3)
+n<-m2_uca[,.(table(finos_class))]
+str(n)
+rndid<-with(m2_uca, ave(B02_20200204,finos_class,FUN=function(x) {sample.int(length(x))}))
+m3_uca<-m2_uca[rndid<=min(n$N),]
+m3_uca[,table(finos_class)]
+
+
+##Database for sediment grain types bare sediment
+#m2[,finos_class:=ifelse(mud<10,"sandy","muddy")]
+m2[,table(finos_class)]
+m2_bs<-m2[cvr_vrA=="bare_sediment"]
+
+set.seed(4)
+n<-m2_bs[,.(table(finos_class))]
+str(n)
+rndid<-with(m2_bs, ave(B02_20200204,finos_class,FUN=function(x) {sample.int(length(x))}))
+m3_bs<-m2_bs[rndid<=min(n$N),]
+m3_bs[,table(finos_class)]
+
+
+
 
 ##Database for wet vs dry
 n<-m2[,.(table(WD))] ## No need, number of pixels similar
@@ -230,8 +274,277 @@ m3_cvrG<-m2[rndid<=50] ##Chose 50 because one of the classes has too few observa
 m3_cvrG[,table(cvr_sd_g)]
 
 
+################################################################
+################################################################
+##Compute general correlations between numerical variables
+
+num<-names(m2)[sapply(m2, is.numeric)]
+dbc<-m2[,c(num),with=F]
+dbc1<-sapply(dbc, as.numeric)
+res<-rcorr(as.matrix(dbc))
+resr<-round(res$r,1)
+resp<-round(res$P,1)
+
+# Insignificant correlation are crossed
+corrplot(resr,order="original",p.mat=resp,sig.level=0.05,insig="pch",method="number",diag=T)
+
+
+##Compute correlations for STEP 1 (cover over) between numerical variables
+
+num<-names(m3_cvrA)[sapply(m3_cvrA, is.numeric)]
+dbc<-m3_cvrA[,c(num),with=F]
+dbc1<-sapply(dbc, as.numeric)
+res<-rcorr(as.matrix(dbc))
+resr<-round(res$r,1)
+resp<-round(res$P,1)
+
+# Insignificant correlation are crossed
+corrplot(resr,order="original",p.mat=resp,sig.level=0.05,insig="pch",method="number",diag=T)
+
+
+
+##Compute correlations for STEP 2 (uca vs bare sed) between numerical variables
+
+num<-names(m3_ucabs)[sapply(m3_ucabs, is.numeric)]
+dbc<-m3_ucabs[,c(num),with=F]
+dbc1<-sapply(dbc, as.numeric)
+res<-rcorr(as.matrix(dbc))
+resr<-round(res$r,1)
+resp<-round(res$P,1)
+
+# Insignificant correlation are crossed
+corrplot(resr,order="original",p.mat=resp,sig.level=0.05,insig="pch",method="number",diag=T)
+
+
+##Compute correlations for STEP 3 uca between numerical variables
+
+num<-names(m3_uca)[sapply(m3_uca, is.numeric)]
+dbc<-m3_uca[,c(num),with=F]
+dbc1<-sapply(dbc, as.numeric)
+res<-rcorr(as.matrix(dbc))
+resr<-round(res$r,1)
+resp<-round(res$P,1)
+
+# Insignificant correlation are crossed
+corrplot(resr,order="original",p.mat=resp,sig.level=0.05,insig="pch",method="number",diag=T)
+
+
+##Compute correlations for STEP 3 bare sediment between numerical variables
+
+num<-names(m3_bs)[sapply(m3_bs, is.numeric)]
+dbc<-m3_bs[,c(num),with=F]
+dbc1<-sapply(dbc, as.numeric)
+res<-rcorr(as.matrix(dbc))
+resr<-round(res$r,1)
+resp<-round(res$P,1)
+
+# Insignificant correlation are crossed
+corrplot(resr,order="original",p.mat=resp,sig.level=0.05,insig="pch",method="number",diag=T)
+
+
+
+
+
+
+
+
+
+##Correlation plot for dry and wet areas seperately
+m2_dry<-m2[WD=="dry"]
+m2_wet<-m2[WD=="wet"]
+
+###Dry
+num_dry<-names(m2_dry)[sapply(m2_dry, is.numeric)]
+dbc_dry<-m2_dry[,c(num_dry),with=F]
+dbc1_dry<-sapply(dbc_dry, as.numeric)
+res_dry<-rcorr(as.matrix(dbc_dry))
+resr_dry<-round(res_dry$r,2)
+resp_dry<-round(res_dry$P,2)
+
+# Insignificant correlation are crossed
+corrplot(resr_dry,type="upper",order="original",p.mat=resp,sig.level=0.05,insig="pch",method="circle",diag=T,main="Dry areas <30% water")
+
+
+
+###wet
+num_wet<-names(m2_wet)[sapply(m2_wet, is.numeric)]
+dbc_wet<-m2_wet[,c(num_wet),with=F]
+dbc1_wet<-sapply(dbc_wet, as.numeric)
+res_wet<-rcorr(as.matrix(dbc_wet))
+resr_wet<-round(res_wet$r,2)
+resp_wet<-round(res_wet$P,2)
+
+# Insignificant correlation are crossed
+corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig="pch",method="circle",diag=T,main="wet areas >=30% water")
+
+
+
+
+
+
+
+
 #########################################################################################
 #########################################################################################
+
+## subset database for a PCA focused on step1 
+m4_step1<-na.omit(m3_cvrA[,c(45,49,1:26,54,58)])
+str(m4_step1)
+
+m4_step1[,table(cvr_vrA)]
+m4_step1[,table(WD)]
+
+m4_step1_tot<-na.omit(m2[,c(45,49,1:26,54,58)])
+str(m4_step1_tot)
+
+m4_step1_tot[,table(cvr_vrA)]
+m4_step1_tot[,table(WD)]
+
+##run PCA analysis
+step1_pca<-prcomp(m4_step1[,!c("WD","cvr_vrA")],center=T,scale=T)
+summary(step1_pca)
+
+##run PCA analysis
+step1_pca_1<-prcomp(m4_step1_tot[,!c("WD","cvr_vrA")],center=T,scale=T)
+summary(step1_pca_1)
+
+
+##plot PCA
+
+ggbiplot(step1_pca,choices=1:2,ellipse=T,groups=m4_step1$cvr_vrA,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="step 1 Cover over")
+
+pca3d(step1_pca, group=factor(m4_step1$cvr_vrA),components=1:3,show.group.labels = T,legend="right",biplot=F,new=T)
+#snapshotPCA3d(file="first_plot.png")
+dev.off()
+
+stp1_p<-step1_pca_1$x
+
+sat_stp1<-na.omit(sat)
+sat_stp1$pc1<-stp1_p[,1]
+
+plot(stp1_p[,1], col = cm.colors(15), axes = FALSE)
+
+
+
+
+#### STep 2 PCA 
+m4_step2<-na.omit(m3_ucabs[,c(53,49,1:26,54,58)])
+str(m4_step2)
+
+m4_step2_1<-na.omit(m2[,c(53,49,1:26,54,58)])
+str(m4_step2_1)
+
+m4_step2_1[,table(uca)]
+m4_step2_1[,table(WD)]
+
+##run PCA analysis
+step2_pca<-prcomp(m4_step2[,!c("WD","uca")],center=T,scale=T)
+summary(step2_pca)
+
+##run PCA analysis
+step2_pca1<-prcomp(m4_step2_1[,!c("WD","uca")],center=T,scale=T)
+summary(step2_pca1)
+
+##plot PCA
+
+ggbiplot(step2_pca1,choices=1:2,ellipse=T,groups=m4_step2_1$uca,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="step 2 uca vs bare sediment")
+
+
+
+#### STep 3 UCA PCA 
+m4_step3uca<-na.omit(m3_uca[,c(60,49,1:26,54,58)])
+str(m4_step3uca)
+
+m4_step3uca_1<-na.omit(m2[uca=="uca",c(60,49,1:26,54,58)])
+str(m4_step3uca_1)
+
+m4_step3uca[,table(finos_class)]
+m4_step3uca_1[,table(finos_class)]
+
+##run PCA analysis
+step3uca_pca<-prcomp(m4_step3uca[,!c("WD","finos_class")],center=T,scale=T)
+summary(step3uca_pca)
+
+##run PCA analysis
+step3uca_pca1<-prcomp(m4_step3uca_1[,!c("WD","finos_class")],center=T,scale=T)
+summary(step3uca_pca1)
+
+##plot PCA
+
+ggbiplot(step3uca_pca1,choices=1:2,ellipse=T,groups=m4_step3uca_1$finos_class,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="step 3 uca")
+
+
+
+
+
+#### STep 3 BS PCA 
+m4_step3bs<-na.omit(m3_bs[,c(60,49,1:26,54,58)])
+str(m4_step3bs)
+
+m4_step3bs_1<-na.omit(m2[uca=="other",c(60,49,1:26,54,58)])
+str(m4_step3bs_1)
+
+m4_step3bs[,table(finos_class)]
+m4_step3bs_1[,table(finos_class)]
+
+##run PCA analysis
+step3bs_pca<-prcomp(m4_step3bs[,!c("WD","finos_class")],center=T,scale=T)
+summary(step3bs_pca)
+
+##run PCA analysis
+step3bs_pca1<-prcomp(m4_step3bs_1[,!c("WD","finos_class")],center=T,scale=T)
+summary(step3bs_pca1)
+
+##plot PCA
+
+ggbiplot(step3bs_pca,choices=1:2,ellipse=T,groups=m4_step3bs$finos_class,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="step 3 bare sediment")
+
+
+
+
+
+
+
+
+##sample balanced number of points between dry and wet
+set.seed(5)
+n<-m4_1[,.(table(WD))] ## No need, number of pixels similar
+rndid<-with(m4_1, ave(NDWI,WD,FUN=function(x) {sample.int(length(x))}))
+m4_WD<-m4_1[rndid<=min(n$N)] ##Chose 50 because one of the classes has too few observations
+m4_WD[,table(WD)]
+
+##run PCA analysis
+m4_pca<-prcomp(m4_WD[,!c("WD","cvr_vrA","cvr_sd_f","cvr_sd_g","uca","D50_um_","Mn_fw_m","Mn_fw_p","intensity")],center=T,scale=T)
+summary(m4_pca)
+
+##plot PCA
+
+ggbiplot(m4_pca,choices=1:2,ellipse=T,groups=m4_WD$WD,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="Wet VS Dry (30% cut)")
+
+pca3d(m4_pca, group=factor(m4_WD$uca),components=1:3,show.group.labels = T,legend="right",biplot=F,new=T)
+#snapshotPCA3d(file="first_plot.png")
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
 ## subset database for a PCA focused on separating water from dry areas (column WD, 30% cut)
 m4<-m2[,.(NDWI,mNDWI,NDMI,NDMI1,B11_20200204,B12_20200204,intensity,S1_20200128_VH,S1_20200128_VV,dem_104_469,c_uca,c_water,mud,Sand,Mn_fw_m,Mn_fw_p,D50_um_,WD,cvr_vrA,cvr_sd_f,cvr_sd_g,uca)][c(cvr_vrA=="bare_sediment"|cvr_vrA=="uca")]
 str(m4)

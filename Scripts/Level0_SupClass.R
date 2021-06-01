@@ -105,13 +105,13 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 #str(GT_c_l0_v@data)
 
 ### selection of bands to use
-sat1<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08_20200204","B09_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDWI","mNDWI","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi"))
+sat1<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08A_20200204","B11_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","MSAVI2","mNDWI","NDWI","rededge_sum","RVI"))
 names(sat1)
 
-sat2<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08_20200204","B09_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDWI","mNDWI","NDVI","MSAVI2","intensity","rededge_multi"))
+sat2<-subset(sat,c("B04_20200204","B05_20200204","B11_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","MSAVI2","mNDWI","NDWI","intensity","rededge_sum","iv_multi","RVI"))
 names(sat2)
 
-sat3<-
+
 
 ##########################################################################
 ##########################################################################
@@ -120,14 +120,14 @@ start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1<-superClass(img=sat2,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
 end<-Sys.time()
 dif<-end-start
 
-saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster",overwrite=F)
+saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster",overwrite=T)
 SC1<-readRSTBX("Data_out/models/SC1_all")
 
 SC1$model$finalModel$importance
@@ -137,7 +137,7 @@ start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1_sel<-superClass(img=sat2,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1_sel<-superClass(img=sat1,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -150,36 +150,36 @@ SC1_sel<-readRSTBX("Data_out/models/SC1_all_sel")
 
 SC1_sel$model$finalModel$importance
 
-SC1_sel$classMapping
-plot(SC1_sel$map,colNA=1,col=c("green","red","lightgrey","blue"))
-SC1_sel_tif<-SC1_sel$map
-writeRaster(SC1_sel_tif,"Data_out/models/SC1_sel_selvar.tif")
+SC1$classMapping
+plot(SC1$map,colNA=1,col=c("green","red","lightgrey","blue"))
+SC1_tif<-SC1$map
+#writeRaster(SC1_tif,"Data_out/models/SC1_selvar.tif")
 
 xx<-drawExtent()
-adonga_t<-crop(SC1_sel$map,xx)
+adonga_t<-crop(SC1$map,xx)
 plot(adonga_t, colNA=1,col=c("forestgreen","red","lightgrey","blue"))
 
 
 ###Isolating sediments area
-seds_mask<-SC1_sel_tif==3
+seds_mask<-SC1_tif==3
 seds_mask[seds_mask==0]<-NA # turn remaining area (coded zero) into NA
 plot(seds_mask, colNA=1)
-writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_selvar.tif", overwrite=F)
+writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_selvar.tif", overwrite=T)
 
 ### Saving the macro
-mask_macro_t<-SC1_sel_tif==1
+mask_macro_t<-SC1_tif==1
 mask_macro_t[mask_macro_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_macro_t, colNA=1)
 writeRaster(mask_macro_t,"Data_out/mask/mask_macro_t_selvar.tif", overwrite=T)
 
 ### Saving the rocks
-mask_rocks_t<-SC1_sel_tif==2
+mask_rocks_t<-SC1_tif==2
 mask_rocks_t[mask_rocks_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_rocks_t, colNA=1)
 writeRaster(mask_rocks_t,"Data_out/mask/mask_rocks_t_selvar.tif", overwrite=T)
 
 ### Saving the shells
-mask_shells_t<-SC1_sel_tif==4
+mask_shells_t<-SC1_tif==4
 mask_shells_t[mask_shells_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_shells_t, colNA=1)
 writeRaster(mask_shells_t,"Data_out/mask/mask_shells_t_selvar.tif", overwrite=T)
@@ -207,17 +207,32 @@ DF4[,table(finos_class)]
 DF4[,finos_WD:=paste(sediments_WD,finos_class,sep="_")]
 DF4[,table(finos_WD)]
 
+DF4[,Grain_EU:=ifelse(mud<10,"sand",ifelse(mud>=10&mud<25,"muddy_sand",ifelse(mud>=25&mud<60,"mixed",ifelse(mud>=60,"muddy",NA))))][cvr_vrA=="bare_sediment"|cvr_vrA=="uca",Final_grain_EU:=paste(cvr_vrA,Grain_EU,sep="_")]
+DF4[,table(Final_grain_EU)]
+DF4[,table(Grain_EU)]
+DF4[,table(cvr_vrA)]
+DF4[is.na(mud),.(mud,cvr_vrA,Final_grain_EU)]
+
+DF4[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand",Final_grain_EU1:="bare_sediment_mixed"][Final_grain_EU=="uca_muddy_sand",Final_grain_EU1:="uca_mixed"]
+DF4[,table(Final_grain_EU1)]
+DF4[,table(uca)]
+
+
+DF4_1<-DF4[!(is.na(mud)),]
+DF4_1[,table(Final_grain_EU)]
+DF4_1[,table(uca)]
+
 set.seed(10)
-trainIndex <- createDataPartition(DF4$finos_WD, p = .7, 
+trainIndex <- createDataPartition(DF4$uca, p = .70, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L1_train_seds<-DF4[trainIndex]
-L1_train_seds[,table(finos_WD)]
+L1_train_seds[,table(uca)]
 
 L1_val_seds<-DF4[-trainIndex]
-L1_val_seds[,table(finos_WD)]
+L1_val_seds[,table(uca)]
 
 ###Introduce new columns on training and validation polygons
 GT_c_l1_t_seds<-merge(GT_c1,L1_train_seds,by="Point",all.x=F,all.y=T)
@@ -232,23 +247,29 @@ sat_seds<-raster::mask(sat,seds_mask)
 endCluster()
 beep(3)
 writeRaster(sat_seds,"Data_out/Stack/sat_seds.tif")
+sat_seds<-stack("Data_out/Stack/sat_seds.tif")
+names(sat_seds)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+              "visible_multi")
 
 #### Select bands to use ####
-sat_seds1<-subset(sat_seds,c("B09_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDMI1","RVI","VH_VV","MSAVI2"))
+sat_seds1<-subset(sat_seds,c("B11_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDMI1","RVI","VH_VV","MSAVI2"))
+sat_seds2<-subset(sat_seds,c("B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","NDMI1","NDWI","VH_VV","MSAVI2"))
 
 ######## Random forest class #########
 start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1_seds<-superClass(img=sat_seds1,model="rf",trainData=GT_c_l1_t_seds,responseCol="finos_WD",valData=GT_c_l1_v_seds,polygonBasedCV=F,predict=T,
+SC1_seds<-superClass(img=sat_seds,model="rf",trainData=GT_c_l1_t_seds,responseCol="uca.y",valData=GT_c_l1_v_seds,polygonBasedCV=F,predict=T,
                     predType="raw",filename=NULL)
 endCluster()
 beep(3)
 end<-Sys.time()
 dif<-end-start
 
-saveRSTBX(SC1_seds,"Data_out/models/SC1_seds",fomat="raster",overwrite=F)
+saveRSTBX(SC1_seds,"Data_out/models/SC1_seds",fomat="raster",overwrite=T)
 SC1_seds<-readRSTBX("Data_out/models/SC1_seds")
 
 SC1_seds$model$finalModel$importance
@@ -283,10 +304,13 @@ writeRaster(uca_mask,"Data_out/mask/uca_mask_selvar.tif", overwrite=T)
 DF4[,table(finos_class)]
 DF5<-DF4[!(is.na(mud))] ## remove data without grain size analysis
 DF5[,table(uca)]
+DF5[,table(Final_grain_EU)]
+DF5[,table(Final_grain_EU1)]
 
 DF6<-DF5[uca=="uca"][,uca:=as.character(uca)] ##Database only for uca
 DF6[,table(uca)]
 DF6[,table(finos_WD)]
+DF6[,table(Final_grain_EU)]
 DF6[,finos_WD1:=finos_WD][finos_WD=="uca_wet_muddy"|finos_WD=="uca_wet_sandy",finos_WD1:="uca_wet"][Class_22=="beach_sand",finos_WD1:="beach_sand_uca"]
 DF6[,table(finos_WD1)]
 DF6[,finos_WD2:=finos_WD][Class_22=="beach_sand",finos_WD2:="beach_sand_uca"]
@@ -307,16 +331,16 @@ ggplot(DF6,aes(x=D50_um_,fill=Sd_clss))+
 
 
 set.seed(10)
-trainIndex <- createDataPartition(DF6$finos_class1, p = .7, 
+trainIndex <- createDataPartition(DF6$finos_class, p = .70, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L1_train_uca<-DF6[trainIndex]
-L1_train_uca[,table(finos_class1)]
+L1_train_uca[,table(finos_class)]
 
 L1_val_uca<-DF6[-trainIndex]
-L1_val_uca[,table(finos_class1)]
+L1_val_uca[,table(finos_class)]
 
 ###Introduce new columns on training and validation polygons
 GT_c_l1_t_uca<-merge(GT_c1,L1_train_uca,by="Point",all.x=F,all.y=T)
@@ -330,17 +354,22 @@ sat_uca<-raster::mask(sat,uca_mask)
 endCluster()
 beep(3)
 writeRaster(sat_uca,"Data_out/Stack/sat_uca.tif", overwrite=T)
+sat_uca<-stack("Data_out/Stack/sat_uca.tif")
+names(sat_uca)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                  "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                  "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                  "visible_multi")
 
 
 #### Select bands to use ####
-sat_uca1<-subset(sat_uca,c("B09_20200204","S1_20200128_VH","S1_20200128_VV","VH_VV","iv_multi","rededge_sum","intensity"))
+sat_uca1<-subset(sat_uca,c("S1_20200128_VH","S1_20200128_VV","B11_20200204","rededge_sum","intensity","dem_104_469","NDMI1","NDWI","mNDWI","MSAVI2","VH_VV"))
 
 ######## Random forest class #########
 start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1_uca<-superClass(img=sat_uca1,model="rf",trainData=GT_c_l1_t_uca,responseCol="finos_class1",valData=GT_c_l1_v_uca,polygonBasedCV=F,predict=T,
+SC1_uca<-superClass(img=sat_uca,model="rf",trainData=GT_c_l1_t_uca,responseCol="finos_class",valData=GT_c_l1_v_uca,polygonBasedCV=F,predict=T,
                      predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -370,13 +399,19 @@ plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
 ######## Classifing bare sediment areas ##################
 
 DF4[,table(finos_class)]
+DF4[,table(finos_class1)]
 DF5<-DF4[!(is.na(mud))] ## remove data without grain size analysis
 DF5[,table(uca)]
+DF5[,table(Final_grain_EU)]
+DF5[,table(Final_grain_EU1)]
 
 DF6_bs<-DF5[uca=="other"][,uca:=as.character(uca)] ##Database only for uca
 DF6_bs[,table(uca)]
 DF6_bs[,table(finos_WD)]
 DF6_bs[,table(finos_class)]
+DF6_bs[,table(WD)]
+DF6_bs[,table(Final_grain_EU)]
+DF6_bs[,table(Final_grain_EU1)]
 
 # juntar as areas wet so numa classe
 DF6_bs[,finos_WD1:=finos_WD][finos_WD=="bare_sediment_wet_muddy"|finos_WD=="bare_sediment_wet_sandy",finos_WD1:="bare_sediment_wet"][Class_22=="beach_sand",finos_WD1:="beach_sand_bare_sediment"]
@@ -404,7 +439,7 @@ ggplot(DF6,aes(x=D50_um_,fill=Sd_clss))+
 
 
 set.seed(10)
-trainIndex <- createDataPartition(DF6_bs$finos_WD2, p = .7, 
+trainIndex <- createDataPartition(DF6_bs$finos_class1, p = .70, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
@@ -436,25 +471,83 @@ names(sat_baresed)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204
 
 
 #### Select bands to use ####
-sat_baresed1<-subset(sat_baresed,c("B02_20200204","B03_20200204","B04_20200204","B08_20200204","B09_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","VH_VV","iv_multi","MSAVI2","rededge_sum","NDMI1","mNDWI","NDWI"))
+sat_baresed1<-subset(sat_baresed,c("S1_20200128_VH","S1_20200128_VV","rededge_multi","B02_20200204","B03_20200204","B04_20200204","iv_multi","mNDWI","NDWI"))
 
 ######## Random forest class #########
 start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1_bs<-superClass(img=sat_baresed1,model="rf",trainData=GT_c_l1_t_bs,responseCol="finos_WD2",valData=GT_c_l1_v_bs,polygonBasedCV=F,predict=T,
+SC1_bs<-superClass(img=sat_baresed1,model="rf",trainData=GT_c_l1_t_bs,responseCol="finos_class1",valData=GT_c_l1_v_bs,polygonBasedCV=F,predict=T,
                     predType="raw",filename=NULL)
 endCluster()
 beep(3)
 end<-Sys.time()
 dif<-end-start
 
-saveRSTBX(SC1_bs,"Data_out/models/SC1_bs_finos_WD",fomat="raster",overwrite=T)
-saveRSTBX(SC1_bs,"Data_out/models/SC1_bs_finos_WD2",fomat="raster",overwrite=T)
-SC1_bs<-readRSTBX("Data_out/models/SC1_uca")
+saveRSTBX(SC1_bs,"Data_out/models/SC1_bs_finos",fomat="raster",overwrite=T)
+SC1_bs<-readRSTBX("Data_out/models/SC1_bs_finos")
+saveRSTBX(SC1_bs,"Data_out/models/SC1_bs_finos1",fomat="raster",overwrite=T)
+SC1_bs<-readRSTBX("Data_out/models/SC1_bs_finos1")
 
 SC1_bs$model$finalModel$importance
+
+SC1_bs$classMapping
+plot(SC1_bs$map,colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+SC1_bs_tif<-SC1_bs$map
+writeRaster(SC1_bs_tif,"Data_out/models/SC1_bs1_selvar.tif")
+
+xx<-drawExtent()
+subs_t<-crop(SC1_bs$map,xx)
+plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+
+
+############################################################################################
+################# Dividir bare sediment em wet e dry antes da classificação ################
+DF6_bs[,table(WD)]
+
+set.seed(10)
+trainIndex <- createDataPartition(DF6_bs$WD, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex)
+
+L1_train_bs_WD<-DF6_bs[trainIndex]
+L1_train_bs_WD[,table(WD)]
+
+L1_val_bs_WD<-DF6_bs[-trainIndex]
+L1_val_bs_WD[,table(WD)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l1_t_bs_WD<-merge(GT_c1,L1_train_bs_WD,by="Point",all.x=F,all.y=T)
+
+GT_c_l1_v_bs_WD<-merge(GT_c1,L1_val_bs_WD,by="Point",all.x=F,all.y=T)
+
+## sat image
+sat_baresed<-stack("Data_out/Stack/sat_baresed.tif")
+names(sat_baresed)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                      "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                      "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                      "visible_multi")
+
+#### Select bands to use ####
+sat_baresed2<-subset(sat_baresed,c("B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","VH_VV","iv_multi","MSAVI2","rededge_sum","NDMI1","mNDWI","NDWI","dem_104_469"))
+
+######## Random forest class #########
+start<-Sys.time()
+
+set.seed(12)
+beginCluster(5)
+SC1_bs_WD<-superClass(img=sat_baresed,model="rf",trainData=GT_c_l1_t_bs_WD,responseCol="WD.y",valData=GT_c_l1_v_bs_WD,polygonBasedCV=F,predict=T,
+                   predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif<-end-start
+
+saveRSTBX(SC1_bs_WD,"Data_out/models/SC1_bs_WD",fomat="raster",overwrite=T)
+
+SC1_bs_WD$model$finalModel$importance
 
 SC1_uca$classMapping
 plot(SC1_uca$map,colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
@@ -464,17 +557,6 @@ writeRaster(SC1_uca_tif,"Data_out/models/SC1_uca_selvar.tif")
 xx<-drawExtent()
 subs_t<-crop(SC1_uca$map,xx)
 plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
-
-
-
-
-
-
-
-
-
-
-
 
 
 
