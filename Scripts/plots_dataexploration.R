@@ -39,11 +39,34 @@ m2[,table(uca)]
 
 order(m2[uca=="uca",unique(mud)])
 
-m2[,Grain_EU:=ifelse(mud<10,"sand",ifelse(mud>=10&mud<25,"muddy_sand",ifelse(mud>=25&mud<60,"mixed",ifelse(mud>=60,"muddy",NA))))][cvr_vrA=="bare_sediment"|cvr_vrA=="uca",Final_grain_EU:=paste(cvr_vrA,Grain_EU,sep="_")]
+## Sediment classes as defined by EU (2019)
+m2[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][cvr_vrA=="bare_sediment"|cvr_vrA=="uca",Final_grain_EU:=paste(cvr_vrA,Grain_EU,sep="_")]
 m2[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand",Final_grain_EU1:="bare_sediment_mixed"][Final_grain_EU=="uca_muddy_sand",Final_grain_EU1:="uca_mixed"]
 m2[,table(Final_grain_EU1)]
 m2[,table(Final_grain_EU)]
 m2[mud==10,.(Final_grain_EU,Final_grain_EU1,mud)]
+
+## Sediment class as used by Belo in MSc Thesis
+m2[,finos_class:=ifelse(mud<10,"sandy_010",ifelse(mud>=10&mud<=100,"muddy_10100",NA))]
+m2[!(is.na(mud)),table(finos_class)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+m2[,FolkBeninger:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<90,"sandy_mud_5090",ifelse(mud>=90&mud<=100,"mud_90100",NA))))]
+m2[,table(FolkBeninger)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+m2[,FolkBeninger1:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<90,"mixed_1090",ifelse(mud>=90&mud<=100,"mud_90100",NA)))]
+m2[,table(FolkBeninger1)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+m2[,FolkBeninger2:=ifelse(mud<50,"sandy_0_50",ifelse(mud>=50&mud<=100,"mixed_50_100",NA))]
+m2[,table(FolkBeninger2)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+m2[,FolkBeninger3:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<=100,"muddy_50100",NA)))]
+m2[,table(FolkBeninger3)]
+
+
 
 
 m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
@@ -62,13 +85,13 @@ ggplot(m2[!(is.na(Mn_fw_m)|is.na(Final_grain_EU))],aes(x=Mn_fw_p, fill=Final_gra
   #scale_x_continuous(breaks=seq(0,500,25),limits=c(0,500))+
   labs(title="uca areas")
 
-ggplot(m2[!(is.na(mud)|is.na(Final_grain_EU))],aes(x=mud, fill=Final_grain_EU))+
-  geom_histogram(binwidth=.5,col="white")+
+ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=Mn_fw_p, fill=Sd_cls1))+
+  geom_histogram(binwidth=.02,col="white")+
   #stat_summary()+
   theme_bw()+
   facet_grid(~uca)+
-  scale_x_continuous(breaks=seq(0,100,10))+
-  labs(title="uca areas")
+  #scale_x_continuous(breaks=seq(0,100,10))+
+  labs(title="exposed sediments")
 
 
 ggplot(m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"],aes(x=Mn_fw_m,y=intensity, col=cvr_sd_f))+

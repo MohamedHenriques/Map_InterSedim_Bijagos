@@ -203,7 +203,7 @@ DF4[,table(sediments_WD)]
 DF4[,sediments_WD1:=sediments_WD][sediments_WD=="uca_wet",sediments_WD1:="bare_sediment_wet"]
 DF4[,table(sediments_WD1)]
 DF4[,finos_class:=ifelse(mud<10,"sandy","muddy")]
-DF4[,table(finos_class)]
+DF4[!(is.na(mud)),table(finos_class)]
 DF4[,finos_WD:=paste(sediments_WD,finos_class,sep="_")]
 DF4[,table(finos_WD)]
 

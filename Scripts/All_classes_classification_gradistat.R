@@ -21,8 +21,9 @@ lapply(packs,require,character.only=T)
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
 names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
                           "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-                          "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
+                          "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
                           "visible_multi")
+
 
 ##Load GT polygons
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
@@ -37,6 +38,661 @@ str(DF2)
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
 DF3[,table(cvr_sd_g)]
+
+## Sediment classes as defined by EU (2019)
+DF3[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][,Final_grain_EU:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
+DF3[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand_1025",Final_grain_EU1:="bare_sediment_mixed_2560"][Final_grain_EU=="uca_muddy_sand_1025",Final_grain_EU1:="uca_mixed_2560"][Final_grain_EU1=="bare_sediment_mixed_2560",Final_grain_EU1:="bare_sediment_mixed_1060"][Final_grain_EU1=="uca_mixed_2560",Final_grain_EU1:="uca_mixed_1060"]
+DF3[,table(Final_grain_EU1)]
+DF3[,table(Final_grain_EU)]
+
+
+## Sediment class as used by Belo in MSc Thesis
+DF3[,finos_class:=ifelse(mud<10,"sandy_010",ifelse(mud>=10&mud<=100,"muddy_10100",NA))]
+DF3[!(is.na(mud)),table(finos_class)]
+DF3[,Final_finos_class:=paste(cvr_vrA,finos_class,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_finos_class:=cvr_vrA]
+DF3[,table(Final_finos_class)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+DF3[,FolkBeninger:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<90,"sandy_mud_5090",ifelse(mud>=90&mud<=100,"mud_90100",NA))))]
+DF3[,table(FolkBeninger)]
+DF3[,Final_FolkBeninger:=paste(cvr_vrA,FolkBeninger,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger:=cvr_vrA]
+DF3[,table(Final_FolkBeninger)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+DF3[,FolkBeninger1:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<90,"mixed_1090",ifelse(mud>=90&mud<=100,"mud_90100",NA)))]
+DF3[,table(FolkBeninger1)]
+DF3[,Final_FolkBeninger1:=paste(cvr_vrA,FolkBeninger1,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger1:=cvr_vrA]
+DF3[,table(Final_FolkBeninger1)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+DF3[,FolkBeninger2:=ifelse(mud<50,"sandy_0_50",ifelse(mud>=50&mud<=100,"muddy_50_100",NA))]
+DF3[,table(FolkBeninger2)]
+DF3[,Final_FolkBeninger2:=paste(cvr_vrA,FolkBeninger2,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger2:=cvr_vrA]
+DF3[,table(Final_FolkBeninger2)]
+
+## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
+DF3[,FolkBeninger3:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<=100,"muddy_50100",NA)))]
+DF3[,table(FolkBeninger3)]
+DF3[,Final_FolkBeninger3:=paste(cvr_vrA,FolkBeninger3,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger3:=cvr_vrA]
+DF3[,table(Final_FolkBeninger3)]
+
+DF4<-DF3[!(is.na(cvr_vrA))] #remove bad data point with no data
+
+
+
+DF4[,.(table(Final_finos_class))]
+DF4[,.(table(Final_FolkBeninger))]
+DF4[,.(table(Final_FolkBeninger1))]
+DF4[,.(table(Final_FolkBeninger2))]
+DF4[,.(table(Final_FolkBeninger3))]
+DF4[,.(table(Final_grain_EU1))]
+DF4[,.(table(Final_grain_EU))]
+
+DF5<-DF4[!(is.na(mud)|cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell")] ##remove data points for which we do not have measures of mud content
+
+DF5[,.(table(Final_finos_class))]
+DF5[,.(table(Final_FolkBeninger))]
+DF5[,.(table(Final_FolkBeninger1))]
+DF5[,.(table(Final_FolkBeninger2))]
+DF5[,.(table(Final_FolkBeninger3))]
+DF5[,.(table(Final_grain_EU1))]
+DF5[,.(table(Final_grain_EU))]
+
+
+################# Classification process ###################################
+
+################
+##########################
+############################# Based on mud content
+
+### Classify all classes at the same time
+
+### Devide data for validation (30% for validation)
+DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+
+set.seed(200)
+trainIndex_m1 <- createDataPartition(DF4_1$Final_finos_class, p = .7, 
+                                    list = FALSE, 
+                                    times = 1)
+head(trainIndex_m1)
+
+L0_train_m1<-DF4_1[trainIndex_m1]
+L0_train_m1[,table(Final_finos_class)]
+
+L0_val_m1<-DF4_1[-trainIndex_m1]
+L0_val_m1[,table(Final_finos_class)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m1<-merge(GT_c1,L0_train_m1,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m1,col="red")
+#str(GT_c_l0_t_m1@data)
+
+GT_c_l0_v_m1<-merge(GT_c1,L0_val_m1,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m1)
+#str(GT_c_l0_v_m1@data)
+
+### select variables
+sat_m1_all<-sat[[-c(9,14)]]
+names(sat_m1_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m1<-superClass(img=sat_m1_all,model="rf",trainData=GT_c_l0_t_m1,responseCol="Final_finos_class",valData=GT_c_l0_v_m1,polygonBasedCV=F,predict=T,
+                           predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m1<-end-start
+
+saveRSTBX(SC1_allclass_m1,"Data_out/models/SC1_allclass_m1",format="raster",overwrite=T)
+SC1_allclass_m1<-readRSTBX("Data_out/models/SC1_allclass_m1.tif")
+
+SC1_allclass_m1$model$finalModel$importance
+
+plot(SC1_allclass_m1$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m1$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m1$map,d)
+plot(d1,colNA=1,col=rainbow(7))
+
+writeRaster(SC1_allclass_m1$map,"Data_out/class_tif/SC1_allclass_m1.tif",overwrite=T)
+
+
+####Now with selection of variables
+sat_m1_sel<-subset(sat_m1_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m1_sel<-superClass(img=sat_m1_sel,model="rf",trainData=GT_c_l0_t_m1,responseCol="finos_class",valData=GT_c_l0_v_m1,polygonBasedCV=F,predict=T,
+                            predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m1_sel<-end-start
+
+saveRSTBX(SC1_allclass_m1_sel,"Data_out/models/SC1_allclass_m1_sel",format="raster",overwrite=T)
+SC1_allclass_m1_sel<-readRSTBX("Data_out/models/SC1_allclass_m1_sel.tif")
+
+SC1_allclass_m1_sel$model$finalModel$importance
+
+plot(SC1_allclass_m1_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m1_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m1_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m1_sel$map,"Data_out/class_tif/SC1_allclass_m1_sel.tif")
+
+
+
+
+### Classify ony sed classes (after removing macroalgae, rocks and shells)
+
+### Devide data for validation (30% for validation)
+set.seed(200)
+trainIndex_m1a <- createDataPartition(DF5$Final_finos_class, p = .7, 
+                                     list = FALSE, 
+                                     times = 1)
+head(trainIndex_m1a)
+
+L0_train_m1a<-DF5[trainIndex_m1a]
+#L0_train_m1a[,table(Final_finos_class)]
+
+L0_val_m1a<-DF5[-trainIndex_m1a]
+#L0_val_m1a[,table(Final_finos_class)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m1a<-merge(GT_c1,L0_train_m1a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m1a,col="red")
+#str(GT_c_l0_t_m1a@data)
+
+GT_c_l0_v_m1a<-merge(GT_c1,L0_val_m1a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m1a)
+#str(GT_c_l0_v_m1a@data)
+
+### select variables
+sat_seds<-stack("Data_out/Stack/sat_seds.tif")
+names(sat_seds)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                   "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                   "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                   "visible_multi")
+
+sat_seds_m1a_all<-sat_seds[[-c(9,14)]]
+names(sat_seds_m1a_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m1a<-superClass(img=sat_seds_m1a_all,model="rf",trainData=GT_c_l0_t_m1a,responseCol="Final_finos_class",valData=GT_c_l0_v_m1a,polygonBasedCV=F,predict=T,
+                            predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m1a<-end-start
+
+saveRSTBX(SC1_allclass_m1a,"Data_out/models/SC1_allclass_m1a",format="raster",overwrite=T)
+SC1_allclass_m1a<-readRSTBX("Data_out/models/SC1_allclass_m1a.tif")
+
+SC1_allclass_m1a$model$finalModel$importance
+
+plot(SC1_allclass_m1a$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m1a$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m1a$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m1a$map,"Data_out/class_tif/SC1_allclass_m1a.tif")
+
+
+
+####Now with selection of variables
+sat_seds_m1a_sel<-subset(sat_seds_m1a_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m1a_sel<-superClass(img=sat_seds_m1a_sel,model="rf",trainData=GT_c_l0_t_m1a,responseCol="finos_class",valData=GT_c_l0_v_m1a,polygonBasedCV=F,predict=T,
+                                predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m1_sel<-end-start
+
+saveRSTBX(SC1_allclass_m1a_sel,"Data_out/models/SC1_allclass_m1a_sel",format="raster",overwrite=T)
+SC1_allclass_m1a_sel<-readRSTBX("Data_out/models/SC1_allclass_m1a_sel.tif")
+
+plot(SC1_allclass_m1a_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m1a_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m1a_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m1a_sel$map,"Data_out/models/SC1_allclass_m1a_sel.tif")
+
+
+
+############################################################################################################
+#############################################################################################################
+### Final_FolkBeninger
+
+
+### Classify all classes at the same time
+
+### Devide data for validation (30% for validation)
+#DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+
+set.seed(200)
+trainIndex_m2 <- createDataPartition(DF4_1$Final_FolkBeninger, p = .7, 
+                                     list = FALSE, 
+                                     times = 1)
+head(trainIndex_m2)
+
+L0_train_m2<-DF4_1[trainIndex_m2]
+L0_train_m2[,table(Final_FolkBeninger)]
+
+L0_val_m2<-DF4_1[-trainIndex_m2]
+L0_val_m2[,table(Final_FolkBeninger)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m2<-merge(GT_c1,L0_train_m2,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m2,col="red")
+#str(GT_c_l0_t_m2@data)
+
+GT_c_l0_v_m2<-merge(GT_c1,L0_val_m2,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m2)
+#str(GT_c_l0_v_m2@data)
+
+### select variables
+#sat_m1_all<-sat[[-c(9,14)]]
+names(sat_m1_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m2<-superClass(img=sat_m1_all,model="rf",trainData=GT_c_l0_t_m2,responseCol="Final_FolkBeninger",valData=GT_c_l0_v_m2,polygonBasedCV=F,predict=T,
+                            predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m2<-end-start
+
+saveRSTBX(SC1_allclass_m2,"Data_out/models/SC1_allclass_m2",format="raster",overwrite=F)
+SC1_allclass_m2<-readRSTBX("Data_out/models/SC1_allclass_m2.tif")
+
+SC1_allclass_m2$model$finalModel$importance
+
+plot(SC1_allclass_m2$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m2$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m2$map,d)
+plot(d1,colNA=1,col=rainbow(7))
+
+writeRaster(SC1_allclass_m2$map,"Data_out/class_tif/SC1_allclass_m2.tif",overwrite=F)
+
+
+
+####Now with selection of variables
+sat_m2_sel<-subset(sat_m2_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m2_sel<-superClass(img=sat_m2_sel,model="rf",trainData=GT_c_l0_t_m2,responseCol="Final_FolkBeninger",valData=GT_c_l0_v_m2,polygonBasedCV=F,predict=T,
+                                predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m2_sel<-end-start
+
+saveRSTBX(SC1_allclass_m2_sel,"Data_out/models/SC1_allclass_m2_sel",format="raster",overwrite=T)
+SC1_allclass_m2_sel<-readRSTBX("Data_out/models/SC1_allclass_m2_sel.tif")
+
+SC1_allclass_m2_sel$model$finalModel$importance
+
+plot(SC1_allclass_m2_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m2_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m2_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m2_sel$map,"Data_out/class_tif/SC1_allclass_m2_sel.tif")
+
+
+
+
+############### Classify ony sed classes (after removing macroalgae, rocks and shells)
+DF5_1<-DF5[!(DF5$Final_FolkBeninger=="uca_mud_90100")]
+
+### Devide data for validation (30% for validation)
+set.seed(200)
+trainIndex_m2a <- createDataPartition(DF5_1$Final_FolkBeninger, p = .7, 
+                                      list = FALSE, 
+                                      times = 1)
+head(trainIndex_m2a)
+
+L0_train_m2a<-DF5_1[trainIndex_m2a]
+#L0_train_m2a[,table(Final_FolkBeninger)]
+
+L0_val_m2a<-DF5_1[-trainIndex_m2a]
+#L0_val_m2a[,table(Final_FolkBeninger)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m2a<-merge(GT_c1,L0_train_m2a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m2a,col="red")
+#str(GT_c_l0_t_m2a@data)
+
+GT_c_l0_v_m2a<-merge(GT_c1,L0_val_m2a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m2a)
+#str(GT_c_l0_v_m2a@data)
+
+### select variables
+sat_seds<-stack("Data_out/Stack/sat_seds.tif")
+names(sat_seds)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                   "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                   "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                   "visible_multi")
+
+#sat_seds_m1a_all<-sat_seds[[-c(9,14)]]
+names(sat_seds_m1a_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m2a<-superClass(img=sat_seds_m1a_all,model="rf",trainData=GT_c_l0_t_m2a,responseCol="Final_FolkBeninger",valData=GT_c_l0_v_m2a,polygonBasedCV=F,predict=T,
+                             predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m2a<-end-start
+
+saveRSTBX(SC1_allclass_m2a,"Data_out/models/SC1_allclass_m2a",format="raster",overwrite=T)
+SC1_allclass_m2a<-readRSTBX("Data_out/models/SC1_allclass_m2a.tif")
+
+SC1_allclass_m2a$model$finalModel$importance
+
+plot(SC1_allclass_m2a$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m2a$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m2a$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m2a$map,"Data_out/class_tif/SC1_allclass_m2a.tif",overwrite=F)
+
+
+
+####Now with selection of variables
+sat_m2a_sel<-subset(sat_m1_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m2a_sel<-superClass(img=sat_m2a_sel,model="rf",trainData=GT_c_l0_t_m2a,responseCol="Final_FolkBeninger",valData=GT_c_l0_v_m2a,polygonBasedCV=F,predict=T,
+                                predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m2a_sel<-end-start
+
+saveRSTBX(SC1_allclass_m2a_sel,"Data_out/models/SC1_allclass_m2a_sel",format="raster",overwrite=T)
+SC1_allclass_m2a_sel<-readRSTBX("Data_out/models/SC1_allclass_m2a_sel.tif")
+
+SC1_allclass_m2a_sel$model$finalModel$importance
+
+plot(SC1_allclass_m2a_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m2a_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m2a_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m2a_sel$map,"Data_out/class_tif/SC1_allclass_m2a_sel.tif")
+
+
+
+
+
+
+
+
+
+############################################################################################################
+#############################################################################################################
+### Final_FolkBeninger1
+
+
+### Classify all classes at the same time
+
+### Devide data for validation (30% for validation)
+#DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+DF4_2<-DF4_1[!(Final_FolkBeninger1=="uca_mud_90100")]
+DF4_2[,table(Final_FolkBeninger1)]
+
+set.seed(200)
+trainIndex_m3 <- createDataPartition(DF4_2$Final_FolkBeninger1, p = .7, 
+                                     list = FALSE, 
+                                     times = 1)
+head(trainIndex_m3)
+
+L0_train_m3<-DF4_2[trainIndex_m3]
+L0_train_m3[,table(Final_FolkBeninger1)]
+
+L0_val_m3<-DF4_2[-trainIndex_m3]
+L0_val_m3[,table(Final_FolkBeninger1)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m3<-merge(GT_c1,L0_train_m3,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m3,col="red")
+#str(GT_c_l0_t_m3@data)
+
+GT_c_l0_v_m3<-merge(GT_c1,L0_val_m3,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m3)
+#str(GT_c_l0_v_m3@data)
+
+### select variables
+#sat_m1_all<-sat[[-c(9,14)]]
+#names(sat_m1_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m3<-superClass(img=sat_m1_all,model="rf",trainData=GT_c_l0_t_m3,responseCol="Final_FolkBeninger1",valData=GT_c_l0_v_m3,polygonBasedCV=F,predict=T,
+                            predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m3<-end-start
+
+saveRSTBX(SC1_allclass_m3,"Data_out/models/SC1_allclass_m3",format="raster",overwrite=F)
+SC1_allclass_m3<-readRSTBX("Data_out/models/SC1_allclass_m3.tif")
+
+SC1_allclass_m3$model$finalModel$importance
+
+plot(SC1_allclass_m3$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m3$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m3$map,d)
+plot(d1,colNA=1,col=rainbow(7))
+
+writeRaster(SC1_allclass_m3$map,"Data_out/class_tif/SC1_allclass_m3.tif",overwrite=F)
+
+
+
+####Now with selection of variables
+sat_m3_sel<-subset(sat_m1_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m3_sel<-superClass(img=sat_m3_sel,model="rf",trainData=GT_c_l0_t_m3,responseCol="Final_FolkBeninger1",valData=GT_c_l0_v_m3,polygonBasedCV=F,predict=T,
+                                predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m3_sel<-end-start
+
+saveRSTBX(SC1_allclass_m3_sel,"Data_out/models/SC1_allclass_m3_sel",format="raster",overwrite=T)
+SC1_allclass_m3_sel<-readRSTBX("Data_out/models/SC1_allclass_m3_sel.tif")
+
+SC1_allclass_m3_sel$model$finalModel$importance
+
+plot(SC1_allclass_m3_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m3_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m3_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m3_sel$map,"Data_out/class_tif/SC1_allclass_m3_sel.tif")
+
+
+
+
+############### Classify ony sed classes (after removing macroalgae, rocks and shells)
+DF5_1<-DF5[!(DF5$Final_FolkBeninger1=="uca_mud_90100")]
+
+### Devide data for validation (30% for validation)
+set.seed(200)
+trainIndex_m3a <- createDataPartition(DF5_1$Final_FolkBeninger1, p = .7, 
+                                      list = FALSE, 
+                                      times = 1)
+head(trainIndex_m3a)
+
+L0_train_m3a<-DF5_1[trainIndex_m3a]
+#L0_train_m3a[,table(Final_FolkBeninger1)]
+
+L0_val_m3a<-DF5_1[-trainIndex_m3a]
+#L0_val_m3a[,table(Final_FolkBeninger1)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_m3a<-merge(GT_c1,L0_train_m3a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_m3a,col="red")
+#str(GT_c_l0_t_m3a@data)
+
+GT_c_l0_v_m3a<-merge(GT_c1,L0_val_m3a,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_m3a)
+#str(GT_c_l0_v_m3a@data)
+
+### select variables
+sat_seds<-stack("Data_out/Stack/sat_seds.tif")
+names(sat_seds)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                   "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                   "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                   "visible_multi")
+
+#sat_seds_m1a_all<-sat_seds[[-c(9,14)]]
+names(sat_seds_m1a_all)
+
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m3a<-superClass(img=sat_seds_m1a_all,model="rf",trainData=GT_c_l0_t_m3a,responseCol="Final_FolkBeninger1",valData=GT_c_l0_v_m3a,polygonBasedCV=F,predict=T,
+                             predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m3a<-end-start
+
+saveRSTBX(SC1_allclass_m3a,"Data_out/models/SC1_allclass_m3a",format="raster",overwrite=T)
+SC1_allclass_m3a<-readRSTBX("Data_out/models/SC1_allclass_m3a.tif")
+
+SC1_allclass_m3a$model$finalModel$importance
+
+plot(SC1_allclass_m3a$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m3a$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m3a$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m3a$map,"Data_out/class_tif/SC1_allclass_m3a.tif")
+
+
+
+####Now with selection of variables
+sat_m3a_sel<-subset(sat_m1a_all,c()) ## selected according to PCA and correlation matrix
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_m3a_sel<-superClass(img=sat_m3a_sel,model="rf",trainData=GT_c_l0_t_m3a,responseCol="Final_FolkBeninger1",valData=GT_c_l0_v_m3a,polygonBasedCV=F,predict=T,
+                                 predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_m3a_sel<-end-start
+
+saveRSTBX(SC1_allclass_m3a_sel,"Data_out/models/SC1_allclass_m3a_sel",format="raster",overwrite=T)
+SC1_allclass_m3a_sel<-readRSTBX("Data_out/models/SC1_allclass_m3a_sel.tif")
+
+SC1_allclass_m3a_sel$model$finalModel$importance
+
+plot(SC1_allclass_m3a_sel$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_m3a_sel$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_m3a_sel$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_m3a_sel$map,"Data_out/class_tif/SC1_allclass_m3a_sel.tif")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 setkey(DF3,cvr_sd_g)
 DF3["bare_sediment_NA"]
 
