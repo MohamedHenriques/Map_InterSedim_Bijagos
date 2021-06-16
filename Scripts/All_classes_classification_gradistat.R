@@ -1491,7 +1491,7 @@ DF4[,table(Final_grain_EU2)]
 DF4_1[,table(Final_grain_EU2)]
 
 set.seed(200)
-trainIndex_e3 <- createDataPartition(DF4_1$Final_grain_EU2, p = .65, 
+trainIndex_e3 <- createDataPartition(DF4_1$Final_grain_EU2, p = .70, 
                                      list = FALSE, 
                                      times = 1)
 head(trainIndex_e3)
@@ -1788,20 +1788,21 @@ writeRaster(SC1_allclass_g1_sel$map,"Data_out/class_tif/SC1_allclass_g1_sel.tif"
 
 ############### Classify ony sed classes (after removing macroalgae, rocks and shells)
 
-#DF5_1<-DF5[!(DF5$cvr_sd_g=="uca_mud_90100")]
-DF5[,table(cvr_sd_g)]
+DF5_1<-DF5[!(cvr_sd_g=="bare_sediment_NA"|cvr_sd_g=="uca_Medium Sand"|cvr_sd_g=="uca_NA")]
+DF5_1[,cvr_sd_g:=as.character(cvr_sd_g)]
+DF5_1[,table(cvr_sd_g)]
 
 ### Devide data for validation (30% for validation)
 set.seed(200)
-trainIndex_g1a <- createDataPartition(DF5$cvr_sd_g, p = .65, 
+trainIndex_g1a <- createDataPartition(DF5_1$cvr_sd_g, p = .65, 
                                       list = FALSE, 
                                       times = 1)
 head(trainIndex_g1a)
 
-L0_train_g1a<-DF5[trainIndex_g1a]
+L0_train_g1a<-DF5_1[trainIndex_g1a]
 #L0_train_g1a[,table(cvr_sd_g)]
 
-L0_val_g1a<-DF5[-trainIndex_g1a]
+L0_val_g1a<-DF5_1[-trainIndex_g1a]
 #L0_val_g1a[,table(cvr_sd_g)]
 
 ###Introduce new columns on training and validation polygons
@@ -1829,7 +1830,7 @@ names(sat_seds_m1a_all)
 start<-Sys.time()
 set.seed(20)
 beginCluster(7)
-SC1_allclass_g1a<-superClass(img=sat_seds_m1a_all,model="rf",trainData=GT_c_l0_t_g1a,responseCol="cvr_sd_g",valData=GT_c_l0_v_g1a,polygonBasedCV=F,predict=T,
+SC1_allclass_g1a<-superClass(img=sat_seds_m1a_all,model="rf",trainData=GT_c_l0_t_g1a,responseCol="cvr_sd_g.y",valData=GT_c_l0_v_g1a,polygonBasedCV=F,predict=T,
                              predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -1879,6 +1880,9 @@ d1<-crop(SC1_allclass_g1a_sel$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
 writeRaster(SC1_allclass_g1a_sel$map,"Data_out/class_tif/SC1_allclass_g1a_sel.tif")
+
+
+
 
 
 

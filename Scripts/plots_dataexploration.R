@@ -26,10 +26,12 @@ str(m1)
 m1[,c_uca:=as.numeric(c_uca)]
 
 ## create subset of columns
-m2<-m1[,c(2:28,34:39,49:52,57:61,63,66,70:77,81)]
+m2<-m1[,c(2:28,34:39,46,49:52,57:61,63,66,70:77,81)]
 str(m2)
 
 table(is.na(m2))
+
+m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
 
 m2[(WD=="dry"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
 m2[(WD=="wet"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
@@ -40,58 +42,80 @@ m2[,table(uca)]
 order(m2[uca=="uca",unique(mud)])
 
 ## Sediment classes as defined by EU (2019)
-m2[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][cvr_vrA=="bare_sediment"|cvr_vrA=="uca",Final_grain_EU:=paste(cvr_vrA,Grain_EU,sep="_")]
-m2[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand",Final_grain_EU1:="bare_sediment_mixed"][Final_grain_EU=="uca_muddy_sand",Final_grain_EU1:="uca_mixed"]
-m2[,table(Final_grain_EU1)]
+m2[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][,Final_grain_EU:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
+m2[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand_1025",Final_grain_EU1:="bare_sediment_mixed_2560"][Final_grain_EU=="uca_muddy_sand_1025",Final_grain_EU1:="uca_mixed_2560"][Final_grain_EU1=="bare_sediment_mixed_2560",Final_grain_EU1:="bare_sediment_mixed_1060"][Final_grain_EU1=="uca_mixed_2560",Final_grain_EU1:="uca_mixed_1060"]
 m2[,table(Final_grain_EU)]
+m2[,table(Final_grain_EU1)]
 m2[mud==10,.(Final_grain_EU,Final_grain_EU1,mud)]
+
+m2[,Grain_EU1:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<=100,"muddy_25100",NA)))][,Final_grain_EU2:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU1,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
+m2[,.(table(Final_grain_EU2))]
 
 ## Sediment class as used by Belo in MSc Thesis
 m2[,finos_class:=ifelse(mud<10,"sandy_010",ifelse(mud>=10&mud<=100,"muddy_10100",NA))]
 m2[!(is.na(mud)),table(finos_class)]
 
+m2[,Final_finos_class:=paste(cvr_vrA,finos_class,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_finos_class:=cvr_vrA]
+m2[,table(Final_finos_class)]
+
+
+
 ## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
 m2[,FolkBeninger:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<90,"sandy_mud_5090",ifelse(mud>=90&mud<=100,"mud_90100",NA))))]
 m2[,table(FolkBeninger)]
+
+m2[,Final_FolkBeninger:=paste(cvr_vrA,FolkBeninger,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger:=cvr_vrA]
+m2[,table(Final_FolkBeninger)]
 
 ## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
 m2[,FolkBeninger1:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<90,"mixed_1090",ifelse(mud>=90&mud<=100,"mud_90100",NA)))]
 m2[,table(FolkBeninger1)]
 
+m2[,Final_FolkBeninger1:=paste(cvr_vrA,FolkBeninger1,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger1:=cvr_vrA]
+m2[,table(Final_FolkBeninger1)]
+
 ## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
 m2[,FolkBeninger2:=ifelse(mud<50,"sandy_0_50",ifelse(mud>=50&mud<=100,"mixed_50_100",NA))]
 m2[,table(FolkBeninger2)]
+
+m2[,Final_FolkBeninger2:=paste(cvr_vrA,FolkBeninger2,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger2:=cvr_vrA]
+m2[,table(Final_FolkBeninger2)]
 
 ## Sediment classes as defined by Folk1970 and redrawn by Beninger2018
 m2[,FolkBeninger3:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<50,"muddy_sand_1050",ifelse(mud>=50&mud<=100,"muddy_50100",NA)))]
 m2[,table(FolkBeninger3)]
 
-
-
-
-m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
+m2[,Final_FolkBeninger3:=paste(cvr_vrA,FolkBeninger3,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_FolkBeninger3:=cvr_vrA]
+m2[,table(Final_FolkBeninger3)]
 
 m2[,covr_vrA6:=cvr_vrA][covr_vrA6=="bare_sediment",covr_vrA6:="sediments"][covr_vrA6=="uca",covr_vrA6:="sediments"]
 m2[,table(covr_vrA6)]
 
+write.table(m2,"Data_out/db/DF_extract_20210614.csv",row.names=F,sep=";")
+
 ##################################################################################################
 #####################################################################################################
+m2_ad<-m2[Island=="Adonga"]
+m2_rest<-m2[!Island=="Adonga"]
 
-ggplot(m2[!(is.na(Mn_fw_m)|is.na(Final_grain_EU))],aes(x=Mn_fw_p, fill=Final_grain_EU))+
-  geom_histogram(col="white",binwidth=.02)+
+
+ggplot(m2_rest[!(is.na(mud)|is.na(Final_grain_EU))],aes(x=mud, fill=Final_grain_EU))+
+  geom_histogram(col="white",binwidth=1)+
   #stat_summary()+
   theme_bw()+
   facet_grid(~uca)+
-  #scale_x_continuous(breaks=seq(0,500,25),limits=c(0,500))+
+  scale_x_continuous(breaks=seq(0,100,10),limits=c(0,100))+
   labs(title="uca areas")
 
-ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=Mn_fw_p, fill=Sd_cls1))+
-  geom_histogram(binwidth=.02,col="white")+
+ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=D50_um_))+
+  geom_histogram(binwidth=5,col="white")+
   #stat_summary()+
   theme_bw()+
+  geom_vline(xintercept=median(m2[!(is.na(mud)|is.na(Sd_cls1)),D50_um_]),col="blue",lwd=1.2)+
+  geom_vline(xintercept=mean(m2[!(is.na(mud)|is.na(Sd_cls1)),D50_um_]),col="red",lwd=1.2)+
   facet_grid(~uca)+
-  #scale_x_continuous(breaks=seq(0,100,10))+
-  labs(title="exposed sediments")
+  scale_x_continuous(breaks=seq(100,400,25))+
+  labs(title="exposed sediments, median (D50)")
 
 
 ggplot(m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"],aes(x=Mn_fw_m,y=intensity, col=cvr_sd_f))+
@@ -409,6 +433,9 @@ corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig=
 
 #########################################################################################
 #########################################################################################
+##database for general PCA
+m2_1<-na.omit(m2[,c(1:8,10:26,45:46,49,54,56:57,59,61,63,65,67,69:70)])
+str(m2_1)
 
 ## subset database for a PCA focused on step1 
 m4_step1<-na.omit(m3_cvrA[,c(45,49,1:26,54,58)])
@@ -424,6 +451,10 @@ m4_step1_tot[,table(cvr_vrA)]
 m4_step1_tot[,table(WD)]
 
 ##run PCA analysis
+general_pca<-prcomp(m2_1[,!c(26:28,30:38)],center=T,scale=T)
+summary(general_pca)
+
+
 step1_pca<-prcomp(m4_step1[,!c("WD","cvr_vrA")],center=T,scale=T)
 summary(step1_pca)
 
@@ -434,9 +465,9 @@ summary(step1_pca_1)
 
 ##plot PCA
 
-ggbiplot(step1_pca,choices=1:2,ellipse=T,groups=m4_step1$cvr_vrA,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$Final_grain_EU,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
-  labs(colour="step 1 Cover over")
+  labs(colour="General PCA")
 
 pca3d(step1_pca, group=factor(m4_step1$cvr_vrA),components=1:3,show.group.labels = T,legend="right",biplot=F,new=T)
 #snapshotPCA3d(file="first_plot.png")
