@@ -44,8 +44,8 @@ order(m2[uca=="uca",unique(mud)])
 ## Sediment classes as defined by EU (2019)
 m2[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][,Final_grain_EU:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
 m2[,Final_grain_EU1:=Final_grain_EU][Final_grain_EU=="bare_sediment_muddy_sand_1025",Final_grain_EU1:="bare_sediment_mixed_2560"][Final_grain_EU=="uca_muddy_sand_1025",Final_grain_EU1:="uca_mixed_2560"][Final_grain_EU1=="bare_sediment_mixed_2560",Final_grain_EU1:="bare_sediment_mixed_1060"][Final_grain_EU1=="uca_mixed_2560",Final_grain_EU1:="uca_mixed_1060"]
-m2[,table(Final_grain_EU)]
-m2[,table(Final_grain_EU1)]
+m2[,.(table(Final_grain_EU))]
+m2[,.(table(Final_grain_EU1))]
 m2[mud==10,.(Final_grain_EU,Final_grain_EU1,mud)]
 
 m2[,Grain_EU1:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<=100,"muddy_25100",NA)))][,Final_grain_EU2:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU1,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
@@ -99,23 +99,23 @@ m2_ad<-m2[Island=="Adonga"]
 m2_rest<-m2[!Island=="Adonga"]
 
 
-ggplot(m2_rest[!(is.na(mud)|is.na(Final_grain_EU))],aes(x=mud, fill=Final_grain_EU))+
-  geom_histogram(col="white",binwidth=1)+
+ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=mud, fill=Sd_cls1))+
+  geom_histogram(col="white",binwidth=.9)+
   #stat_summary()+
   theme_bw()+
   facet_grid(~uca)+
-  scale_x_continuous(breaks=seq(0,100,10),limits=c(0,100))+
-  labs(title="uca areas")
+  scale_x_continuous(breaks=seq(0,100,10))+
+  labs(title="exposed sediments")
 
-ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=D50_um_))+
-  geom_histogram(binwidth=5,col="white")+
+ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=Mn_fw_p,fill=Sd_cls1))+
+  geom_histogram(binwidth=.02,col="white")+
   #stat_summary()+
   theme_bw()+
-  geom_vline(xintercept=median(m2[!(is.na(mud)|is.na(Sd_cls1)),D50_um_]),col="blue",lwd=1.2)+
-  geom_vline(xintercept=mean(m2[!(is.na(mud)|is.na(Sd_cls1)),D50_um_]),col="red",lwd=1.2)+
+  #geom_vline(xintercept=median(m2[!(is.na(mud)|is.na(Sd_cls1)),Mn_fw_p]),col="blue",lwd=1.2)+
+  #geom_vline(xintercept=mean(m2[!(is.na(mud)|is.na(Sd_cls1)),Mn_fw_p]),col="red",lwd=1.2)+
   facet_grid(~uca)+
-  scale_x_continuous(breaks=seq(100,400,25))+
-  labs(title="exposed sediments, median (D50)")
+  #scale_x_continuous(breaks=seq(100,400,25))+
+  labs(title="exposed sediments, mean grain size distribution (phi)")
 
 
 ggplot(m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"],aes(x=Mn_fw_m,y=intensity, col=cvr_sd_f))+
@@ -434,7 +434,7 @@ corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig=
 #########################################################################################
 #########################################################################################
 ##database for general PCA
-m2_1<-na.omit(m2[,c(1:8,10:26,45:46,49,54,56:57,59,61,63,65,67,69:70)])
+m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,49,54,56:60,59,61:63,65:71)])
 str(m2_1)
 
 ## subset database for a PCA focused on step1 
@@ -451,7 +451,7 @@ m4_step1_tot[,table(cvr_vrA)]
 m4_step1_tot[,table(WD)]
 
 ##run PCA analysis
-general_pca<-prcomp(m2_1[,!c(26:28,30:38)],center=T,scale=T)
+general_pca<-prcomp(m2_1[,!c(27:46)],center=T,scale=T)
 summary(general_pca)
 
 
@@ -465,7 +465,7 @@ summary(step1_pca_1)
 
 ##plot PCA
 
-ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$Final_grain_EU,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$Final_finos_class,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="General PCA")
 

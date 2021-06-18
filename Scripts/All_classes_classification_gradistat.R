@@ -162,7 +162,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m1$map,d)
 plot(d1,colNA=1,col=rainbow(7))
 
-writeRaster(SC1_allclass_m1$map,"Data_out/class_tif/SC1_allclass_m1.tif",overwrite=T)
+writeRaster(SC1_allclass_m1$map,"Data_out/class_tif/SC1_allclass_m1.tif",overwrite=F)
 
 
 ####Now with selection of variables
@@ -255,7 +255,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m1a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_m1a$map,"Data_out/class_tif/SC1_allclass_m1a.tif")
+writeRaster(SC1_allclass_m1a$map,"Data_out/class_tif/SC1_allclass_m1a.tif",overwrite=F)
 
 
 
@@ -296,6 +296,7 @@ writeRaster(SC1_allclass_m1a_sel$map,"Data_out/models/SC1_allclass_m1a_sel.tif")
 
 ### Devide data for validation (30% for validation)
 #DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+DF4_1[,.(table(Final_FolkBeninger))]
 
 set.seed(200)
 trainIndex_m2 <- createDataPartition(DF4_1$Final_FolkBeninger, p = .7, 
@@ -641,7 +642,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m3a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_m3a$map,"Data_out/class_tif/SC1_allclass_m3a.tif")
+writeRaster(SC1_allclass_m3a$map,"Data_out/class_tif/SC1_allclass_m3a.tif",overwrite=F)
 
 
 
@@ -841,7 +842,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m4a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_m4a$map,"Data_out/class_tif/SC1_allclass_m4a.tif")
+writeRaster(SC1_allclass_m4a$map,"Data_out/class_tif/SC1_allclass_m4a.tif",overwrite=T)
 
 
 
@@ -871,7 +872,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m4a_sel$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_m4a_sel$map,"Data_out/class_tif/SC1_allclass_m4a_sel.tif")
+writeRaster(SC1_allclass_m4a_sel$map,"Data_out/class_tif/SC1_allclass_m4a_sel.tif",overwrite=T)
 
 
 
@@ -943,7 +944,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m5$map,d)
 plot(d1,colNA=1,col=rainbow(7))
 
-writeRaster(SC1_allclass_m5$map,"Data_out/class_tif/SC1_allclass_m5.tif",overwrite=F)
+writeRaster(SC1_allclass_m5$map,"Data_out/class_tif/SC1_allclass_m5.tif",overwrite=T)
 
 
 
@@ -1040,7 +1041,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_m5a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_m5a$map,"Data_out/class_tif/SC1_allclass_m5a.tif")
+writeRaster(SC1_allclass_m5a$map,"Data_out/class_tif/SC1_allclass_m5a.tif",overwrite=F)
 
 
 
@@ -1092,7 +1093,7 @@ writeRaster(SC1_allclass_m5a_sel$map,"Data_out/class_tif/SC1_allclass_m5a_sel.ti
 ### Devide data for validation (30% for validation)
 #DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
 #DF4_2<-DF4_1[!(Final_grain_EU=="uca_mud_90100")]
-DF4_1[,table(Final_grain_EU)]
+DF4_1[,.(table(Final_grain_EU))]
 
 set.seed(200)
 trainIndex_e1 <- createDataPartition(DF4_1$Final_grain_EU, p = .65, 
@@ -1182,7 +1183,7 @@ writeRaster(SC1_allclass_e1_sel$map,"Data_out/class_tif/SC1_allclass_e1_sel.tif"
 ############### Classify ony sed classes (after removing macroalgae, rocks and shells)
 
 #DF5_1<-DF5[!(DF5$Final_grain_EU=="uca_mud_90100")]
-DF5[,table(Final_grain_EU)]
+DF5[,.(table(Final_grain_EU))]
 
 ### Devide data for validation (30% for validation)
 set.seed(200)
@@ -1241,7 +1242,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_e1a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_e1a$map,"Data_out/class_tif/SC1_allclass_e1a.tif")
+writeRaster(SC1_allclass_e1a$map,"Data_out/class_tif/SC1_allclass_e1a.tif",overwrite=F)
 
 
 
@@ -1291,7 +1292,7 @@ writeRaster(SC1_allclass_e1a_sel$map,"Data_out/class_tif/SC1_allclass_e1a_sel.ti
 ### Devide data for validation (30% for validation)
 #DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
 #DF4_2<-DF4_1[!(Final_grain_EU1=="uca_mud_90100")]
-DF4_1[,table(Final_grain_EU1)]
+DF4_1[,.(table(Final_grain_EU1))]
 
 set.seed(200)
 trainIndex_e2 <- createDataPartition(DF4_1$Final_grain_EU1, p = .65, 
@@ -1440,7 +1441,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_e2a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_e2a$map,"Data_out/class_tif/SC1_allclass_e2a.tif")
+writeRaster(SC1_allclass_e2a$map,"Data_out/class_tif/SC1_allclass_e2a.tif",overwrite=F)
 
 
 
@@ -1487,8 +1488,8 @@ writeRaster(SC1_allclass_e2a_sel$map,"Data_out/class_tif/SC1_allclass_e2a_sel.ti
 ### Devide data for validation (30% for validation)
 #DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
 #DF4_2<-DF4_1[!(Final_grain_EU2=="uca_mud_90100")]
-DF4[,table(Final_grain_EU2)]
-DF4_1[,table(Final_grain_EU2)]
+DF4[,.(table(Final_grain_EU2))]
+DF4_1[,.(table(Final_grain_EU2))]
 
 set.seed(200)
 trainIndex_e3 <- createDataPartition(DF4_1$Final_grain_EU2, p = .70, 
@@ -1637,7 +1638,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_e3a$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_e3a$map,"Data_out/class_tif/SC1_allclass_e3a.tif")
+writeRaster(SC1_allclass_e3a$map,"Data_out/class_tif/SC1_allclass_e3a.tif",overwrite=F)
 
 
 
