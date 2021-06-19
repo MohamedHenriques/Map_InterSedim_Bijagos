@@ -2075,7 +2075,7 @@ sat_mg1a_sel<-subset(sat_m1a_all,c()) ## selected according to PCA and correlati
 start<-Sys.time()
 set.seed(20)
 beginCluster(7)
-SC1_allclass_mg1a_sel<-superClass(img=sat_mg1a_sel,model="rf",trainData=GT_c_l0_t_mg1a,responseCol="cvr_sd_g",valData=GT_c_l0_v_mg1a,polygonBasedCV=F,predict=T,
+SC1_allclass_mg1a_sel<-superClass(img=sat_mg1a_sel,model="rf",trainData=GT_c_l0_t_mg1a,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1a,polygonBasedCV=F,predict=T,
                                  predType="raw",filename=NULL)
 endCluster()
 beep(3)
