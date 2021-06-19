@@ -91,6 +91,11 @@ m2[,table(Final_FolkBeninger3)]
 m2[,covr_vrA6:=cvr_vrA][covr_vrA6=="bare_sediment",covr_vrA6:="sediments"][covr_vrA6=="uca",covr_vrA6:="sediments"]
 m2[,table(covr_vrA6)]
 
+m2[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="_"),finos_class)]
+m2[,.(table(finos_grad))]
+m2[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
+m2[,.(table(Final_finos_grad))]
+
 write.table(m2,"Data_out/db/DF_extract_20210614.csv",row.names=F,sep=";")
 
 ##################################################################################################
@@ -99,7 +104,7 @@ m2_ad<-m2[Island=="Adonga"]
 m2_rest<-m2[!Island=="Adonga"]
 
 
-ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=mud, fill=Sd_cls1))+
+ggplot(m2[!(is.na(mud)|finos_grad=="sandy_010_NA")],aes(x=mud, fill=finos_grad))+
   geom_histogram(col="white",binwidth=.9)+
   #stat_summary()+
   theme_bw()+
@@ -434,7 +439,7 @@ corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig=
 #########################################################################################
 #########################################################################################
 ##database for general PCA
-m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,49,54,56:60,59,61:63,65:71)])
+m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,48,49,54,56:60,59,61:63,65:71)])
 str(m2_1)
 
 ## subset database for a PCA focused on step1 
@@ -451,7 +456,7 @@ m4_step1_tot[,table(cvr_vrA)]
 m4_step1_tot[,table(WD)]
 
 ##run PCA analysis
-general_pca<-prcomp(m2_1[,!c(27:46)],center=T,scale=T)
+general_pca<-prcomp(m2_1[,!c(27:47)],center=T,scale=T)
 summary(general_pca)
 
 
@@ -465,7 +470,7 @@ summary(step1_pca_1)
 
 ##plot PCA
 
-ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$Final_finos_class,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$cvr,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="General PCA")
 
