@@ -1,5 +1,5 @@
 
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
+setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
 
@@ -15,19 +15,20 @@ names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_2
               "visible_multi")
 
 ##Load GT polygons (without Adonga)
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp")
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210622.shp") #DB creates in script Granulometry_test.R
 #plot(GT)
 df<-data.table(GT@data)
 str(df)
 df[,unique(site)]
+df[,unique(Island)]
 
 ###Adonga
-GT_adonga1<-readOGR("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Adonga/Poligonos_GT/Poligonos_GT_total/pols_Adonga_OK.shp")
-plot(GT_adonga1, add=T, col="red")
+GT_adonga1<-readOGR("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Adonga/Poligonos_GT/Poligonos_GT_total/pols_Adonga_OK.shp")
+plot(GT_adonga1, add=F, col="red")
 #View(GT_adonga1@data)
 dfa<-data.table(GT_adonga1@data)
 
-dfa1<-fread("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/gt_total_20210401_bub_urok_adonga.csv")
+dfa1<-fread("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/gt_total_20210401_bub_urok_adonga.csv")
 str(dfa1)
 dfa1_ad<-dfa1[Site=="Adonga"]
 dfa_f<-merge(dfa,dfa1_ad,by.x="name",by.y="Point",all.y=T)
@@ -36,29 +37,55 @@ str(dfa_f)
 df_adonga<-dfa_f[,.(name,Day,Radius,Class_1,Class_2,Class_3,c_water,c_macrophyte,c_shells,c_rocks,c_channels,c_uca,uca_density,greeness.y,mangrove.y,sed_Id,obs.y,obs2,island,finos)]
 str(df_adonga)
 names(df_adonga)[1]<-"Point"
-names(df_adonga)[7:19]<-names(df)[7:19]
-df_adonga[,c(names(df)[20:37]):=NA]
-df_adonga[,c("mud","X0"):=finos]
-df_adonga1<-df_adonga[,!c("finos")]
+names(df_adonga)[c(7:15,17:19)]<-names(df)[7:18]
+df_adonga[,c(names(df)[19:35]):=NA]
+df_adonga[,Island:="Adonga"]
+df_adonga[,site:=Island]
+#df_adonga[,c("mud","X0"):=finos] ##we decided not to use the data from belo MSc thesis
+df_adonga[,Sed_ID:=sed_Id]
+df_adonga1<-df_adonga[,!c("finos","sed_Id")]
 str(df_adonga1)
 names(df)==names(df_adonga1)
 
-GT_adonga_f<-merge(GT_adonga1,df_adonga1, by.x="name",by.y="Point", all.x=T)
+df_adonga1[,table(Clss_22)]
+df_adonga1[,Clss_22:=factor(Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))]
+
+### Add to the database data from granulometry made in MARE for Adonga samples
+Gra_Final<-fread("Data_out/db/Gra_Final_20210622.csv") ##created in script Granulometry_test.R
+Gra_Final[,Sed_ID1:=as.character(Sed_ID)]
+str(Gra_Final)
+Gra_Final1<-Gra_Final[,c(2:6,7:14,15:18)][]
+names(Gra_Final1)
+
+df_adonga2<-merge(df_adonga1,Gra_Final1,by.x="Sed_ID",by.y="Sed_ID1",all.x=T)
+str(df_adonga2)
+df_adonga3<-df_adonga2[,!(21:34)]
+names(df_adonga3)[c(22:26,28:34,36:37)]<-names(df_adonga2)[21:34]
+names(df_adonga3)[c(29,33:34)]<-c("Texture","Sand","mud")
+
+names(GT_adonga1)
+
+### insert adonga database in adonga shapefile
+GT_adonga_f<-merge(GT_adonga1,df_adonga3, by.x="name",by.y="Point", all.x=T)
 plot(GT_adonga_f)
 str(GT_adonga_f@data)
-cols<-c("name",names(df_adonga1)[-1])
-cols[17]<-"obs.y"
-GT_AD<-GT_adonga_f[,(names(GT_adonga_f) %in% cols)]
+cols<-c("name",names(df_adonga3)[-2])
+cols1<-cols[-27]
+cols1[17]<-"obs.y"
+GT_AD<-GT_adonga_f[,(names(GT_adonga_f) %in% cols1)]
 names(GT_AD@data)[1]<-"Point"
 names(GT_AD@data)[17]<-"obs"
 names(GT_AD@data)==names(df)
-str(GT_AD@data)
-plot(GT_AD, col="red")
+GT_AD1<-GT_AD[,c(names(df))]# reorder to match
+names(GT_AD1@data)==names(df)
 
-###Merge Adonga to the rest of the GT poolygons
-names(GT@data)==names(GT_AD@data)
+#str(GT_AD1@data)
+#plot(GT_AD1, col="red")
 
-GT_tot<-rbind(GT,GT_AD)
+###Merge Adonga to the rest of the GT polygons
+names(GT@data)==names(GT_AD1@data)
+
+GT_tot<-rbind(GT,GT_AD1)
 #View(GT_tot@data)
 dff<-data.table(GT_tot@data)
 
@@ -74,13 +101,12 @@ str(GT_c@data)
 DF0<-data.table(GT_c@data)
 str(DF0)
 
-DF0[Island=="Adonga",site:="Adonga"]
 DF0[Island=="Adonga",table(Class_3)]
 DF0[Island=="Adonga"&Class_3=="green_macroalgae"|Class_3=="green",Class_3:="macroalgae"]
 
 ##remove point 3129 and 3128 (see observations on that data entry)
-DF<-DF0[!Point=="3129"]
-DF<-DF0[!Point=="3128"]
+DF0[Point=="3128"|Point=="3129"]
+DF<-DF0[!(Point=="3129"|Point=="3128")]
 
 ##Convert uca cover percentage into numeric
 DF[,c_uca:=as.numeric(as.character(c_uca))]

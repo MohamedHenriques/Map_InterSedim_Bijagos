@@ -104,8 +104,8 @@ m2_ad<-m2[Island=="Adonga"]
 m2_rest<-m2[!Island=="Adonga"]
 
 
-ggplot(m2[!(is.na(mud)|finos_grad=="sandy_010_NA")],aes(x=mud, fill=finos_grad))+
-  geom_histogram(col="white",binwidth=.9)+
+ggplot(m2_rest[!(is.na(mud)|finos_grad=="sandy_010_NA")],aes(x=mud, fill=finos_grad))+
+  geom_histogram(col="white",binwidth=.25)+
   #stat_summary()+
   theme_bw()+
   facet_grid(~uca)+
@@ -439,7 +439,7 @@ corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig=
 #########################################################################################
 #########################################################################################
 ##database for general PCA
-m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,48,49,54,56:60,59,61:63,65:71)])
+m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,48,49,54,56:60,59,61:63,65:71,73)])
 str(m2_1)
 
 ## subset database for a PCA focused on step1 
@@ -456,7 +456,7 @@ m4_step1_tot[,table(cvr_vrA)]
 m4_step1_tot[,table(WD)]
 
 ##run PCA analysis
-general_pca<-prcomp(m2_1[,!c(27:47)],center=T,scale=T)
+general_pca<-prcomp(m2_1[,!c(27:48)],center=T,scale=T)
 summary(general_pca)
 
 
@@ -470,7 +470,7 @@ summary(step1_pca_1)
 
 ##plot PCA
 
-ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$cvr,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(general_pca,choices=1:2,ellipse=T,groups=m2_1$Final_finos_grad,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="General PCA")
 

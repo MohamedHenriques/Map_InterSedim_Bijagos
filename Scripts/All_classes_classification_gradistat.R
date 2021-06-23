@@ -19,7 +19,7 @@ lapply(packs,require,character.only=T)
 
 ## Load sat img
 sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
                           "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
                           "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
                           "visible_multi")
@@ -1902,13 +1902,15 @@ writeRaster(SC1_allclass_g1a_sel$map,"Data_out/class_tif/SC1_allclass_g1a_sel.ti
 
 ### Devide data for validation (30% for validation)
 #DF4_1<-DF4[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+DF4[,.(table(Final_finos_class))]
 DF4_1[,.(table(finos_class))]
 DF4_1[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="_"),finos_class)]
 DF4_1[,.(table(finos_grad))]
 DF4_1[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
 DF4_1[,.(table(Final_finos_grad))]
-DF4_4<-DF4_1[!(Final_finos_grad=="bare_sediment_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_Medium Sand")]
-DF4_4[,.(table(Final_finos_grad))]
+DF4_4<-DF4_1[!(Final_finos_grad=="uca_sandy_010_Medium Sand")] ## Because we only have 2 polygons for now
+DF4_4[!(Island=="Adonga"),.(table(Final_finos_grad))]
+
 
 set.seed(200)
 trainIndex_mg1 <- createDataPartition(DF4_4$Final_finos_grad, p = .7, 
@@ -1990,7 +1992,7 @@ d<-drawExtent()
 d1<-crop(SC1_allclass_mg1_sel$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
-writeRaster(SC1_allclass_mg1_sel$map,"Data_out/class_tif/SC1_allclass_mg1_sel.tif")
+writeRaster(SC1_allclass_mg1_sel$map,"Data_out/class_tif/SC1_allclass_mg1_sel.tif",overwrite=F)
 
 
 
@@ -2004,7 +2006,7 @@ DF5[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="
 DF5[,.(table(finos_grad))]
 DF5[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
 DF5[,.(table(Final_finos_grad))]
-DF5_4<-DF5[!(Final_finos_grad=="bare_sediment_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_Medium Sand")]
+DF5_4<-DF5[!(Final_finos_grad=="uca_sandy_010_Medium Sand")]
 DF5_4[,.(table(Final_finos_grad))]
 
 ### Devide data for validation (30% for validation)
@@ -2103,7 +2105,157 @@ writeRaster(SC1_allclass_mg1a_sel$map,"Data_out/class_tif/SC1_allclass_mg1a_sel.
 
 
 
+############### Classify only UCA classes 
 
+#DF5_1<-DF5[!(cvr_sd_g=="bare_sediment_NA"|cvr_sd_g=="uca_Medium Sand"|cvr_sd_g=="uca_NA")]
+
+#DF5[,.(table(finos_class))]
+#DF5[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="_"),finos_class)]
+#DF5[,.(table(finos_grad))]
+#DF5[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
+#DF5[,.(table(Final_finos_grad))]
+#DF5_4<-DF5[!(Final_finos_grad=="bare_sediment_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_Medium Sand")]
+#DF5_4[,.(table(Final_finos_grad))]
+DF5_4_uca<-DF5_4[uca=="uca"]
+DF5_4_uca[,.(table(Final_finos_grad))]
+DF5_4_uca1<-DF5_4_uca[!(Island=="Adonga")]
+
+### Devide data for validation (30% for validation)
+set.seed(200)
+trainIndex_mg1uca <- createDataPartition(DF5_4_uca$Final_finos_grad, p = .7, 
+                                       list = FALSE, 
+                                       times = 1)
+head(trainIndex_mg1uca)
+
+L0_train_mg1uca<-DF5_4_uca[trainIndex_mg1uca]
+#L0_train_mg1uca[,table(Final_finos_grad)]
+
+L0_val_mg1uca<-DF5_4_uca[-trainIndex_mg1uca]
+#L0_val_mg1uca[,table(Final_finos_grad)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_mg1uca<-merge(GT_c1,L0_train_mg1uca,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_t_mg1a,col="red")
+#str(GT_c_l0_t_mg1a@data)
+
+GT_c_l0_v_mg1uca<-merge(GT_c1,L0_val_mg1uca,by="Point",all.x=F,all.y=T)
+#plot(GT_c_l0_v_mg1a)
+#str(GT_c_l0_v_mg1a@data)
+
+
+sat_uca<-stack("Data_out/Stack/sat_uca.tif")
+names(sat_uca)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                  "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                  "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                  "visible_multi")
+
+sat_uca_all<-sat_uca[[-c(9,14)]]
+names(sat_uca_all)
+
+#### Select bands to use ####
+#sat_uca1<-subset(sat_uca,c("S1_20200128_VH","S1_20200128_VV","B11_20200204","rededge_sum","intensity","dem_104_469","NDMI1","NDWI","mNDWI","MSAVI2","VH_VV"))
+
+######## Random forest class #########
+start<-Sys.time()
+
+set.seed(12)
+beginCluster(7)
+SC1_mg1uca<-superClass(img=sat_uca_all,model="rf",trainData=GT_c_l0_t_mg1uca,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1uca,polygonBasedCV=F,predict=T,
+                    predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_mg1uca<-end-start
+
+saveRSTBX(SC1_mg1uca,"Data_out/models/SC1_mg1uca",fomat="raster",overwrite=T)
+SC1_mg1uca<-readRSTBX("Data_out/models/SC1_mg1uca")
+
+SC1_mg1uca$model$finalModel$importance
+
+SC1_mg1uca$classMapping
+plot(SC1_mg1uca$map,colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+SC1_mg1uca_tif<-SC1_mg1uca$map
+writeRaster(SC1_mg1uca_tif,"Data_out/models/SC1_mg1uca.tif")
+
+xx<-drawExtent()
+subs_t<-crop(SC1_mg1uca$map,xx)
+plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+
+
+
+
+############### Classify only BARE SEDIMENT classes 
+
+#DF5_1<-DF5[!(cvr_sd_g=="bare_sediment_NA"|cvr_sd_g=="uca_Medium Sand"|cvr_sd_g=="uca_NA")]
+
+#DF5[,.(table(finos_class))]
+#DF5[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="_"),finos_class)]
+#DF5[,.(table(finos_grad))]
+#DF5[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
+#DF5[,.(table(Final_finos_grad))]
+#DF5_4<-DF5[!(Final_finos_grad=="bare_sediment_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_NA"|Final_finos_grad=="uca_sandy_010_Medium Sand")]
+#DF5_4[,.(table(Final_finos_grad))]
+DF5_4_bsed<-DF5_4[uca=="other"]
+DF5_4_bsed[,.(table(Final_finos_grad))]
+DF5_4_bsed1[!(Island=="Adonga")]
+
+### Devide data for validation (30% for validation)
+set.seed(200)
+trainIndex_mg1bsed <- createDataPartition(DF5_4_bsed$Final_finos_grad, p = .7, 
+                                         list = FALSE, 
+                                         times = 1)
+head(trainIndex_mg1bsed)
+
+L0_train_mg1bsed<-DF5_4_bsed[trainIndex_mg1bsed]
+#L0_train_mg1bsed[,table(Final_finos_grad)]
+
+L0_val_mg1bsed<-DF5_4_bsed[-trainIndex_mg1bsed]
+#L0_val_mg1bsed[,table(Final_finos_grad)]
+
+###Introduce new columns on training and validation polygons
+GT_c_l0_t_mg1bsed<-merge(GT_c1,L0_train_mg1bsed,by="Point",all.x=F,all.y=T)
+
+GT_c_l0_v_mg1bsed<-merge(GT_c1,L0_val_mg1bsed,by="Point",all.x=F,all.y=T)
+
+
+
+sat_baresed<-stack("Data_out/Stack/sat_baresed.tif")
+names(sat_baresed)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                      "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                      "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                      "visible_multi")
+
+sat_bsed_all<-sat_baresed[[-c(9,14)]]
+names(sat_bsed_all)
+
+#### Select bands to use ####
+#sat_bsed1<-subset(sat_bsed,c("S1_20200128_VH","S1_20200128_VV","B11_20200204","rededge_sum","intensity","dem_104_469","NDMI1","NDWI","mNDWI","MSAVI2","VH_VV"))
+
+######## Random forest class #########
+start<-Sys.time()
+
+set.seed(12)
+beginCluster(7)
+SC1_mg1bsed<-superClass(img=sat_bsed_all,model="rf",trainData=GT_c_l0_t_mg1bsed,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1bsed,polygonBasedCV=F,predict=T,
+                       predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_mg1bsed<-end-start
+
+saveRSTBX(SC1_mg1bsed,"Data_out/models/SC1_mg1bsed",fomat="raster",overwrite=T)
+SC1_mg1bsed<-readRSTBX("Data_out/models/SC1_mg1bsed")
+
+SC1_mg1bsed$model$finalModel$importance
+
+SC1_mg1bsed$classMapping
+plot(SC1_mg1bsed$map,colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+SC1_mg1bsed_tif<-SC1_mg1bsed$map
+writeRaster(SC1_mg1bsed_tif,"Data_out/models/SC1_mg1bsed.tif")
+
+xx<-drawExtent()
+subs_t<-crop(SC1_mg1bsed$map,xx)
+plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
 
 
 

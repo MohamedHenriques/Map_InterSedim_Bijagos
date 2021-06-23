@@ -8,12 +8,12 @@ lapply(packs,require,character.only=T)
 
 ## Load polygons with info on concluded sediment so far 20201113
 #system.time(GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp"))
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # much faster this way
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # created in script Granulometry_test.R
 #plot(GT, add=F, col="red")
 ##Load GT polygons
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
 ## Load exposure model
-bat<-raster("D:/Work/FCUL/Doutoramento/Digital elevation and exposure time model/dem_104_469.tif")
+bat<-raster("C:/Doutoramento1/Digital elevation and exposure time model/dem_104_469.tif")
 #crs(bat)
 #plot(bat)
 
@@ -168,4 +168,6 @@ unique(m1[is.na(m1$B02_20200204),"Point"])
 
 #write.table(m1,"Data_out/db/GraVSSat_db_20210114.csv",row.names=F,sep=";")
 
-write.table(m1,"Data_out/db/DF_extract_20210429.csv",row.names=F,sep=";")
+#write.table(m1,"Data_out/db/DF_extract_20210429.csv",row.names=F,sep=";")
+write.table(m1,"Data_out/db/DF_extract_20210622.csv",row.names=F,sep=";")
+

@@ -1,4 +1,4 @@
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
+setwd("c:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
 
@@ -18,7 +18,7 @@ crs(GNB1)
 
 ## load gps GT points
 
-locations<-c("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Formosa/urok_gt_gpx","D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Bubaque/bubaque_gt_gpx")
+locations<-c("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Formosa/urok_gt_gpx","C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Bubaque/bubaque_gt_gpx")
 
 myfiles<-list.files(locations,pattern=".gpx",full.names=T)
 myfiles0<-list.files(locations,pattern=".gpx",full.names=F)
@@ -50,7 +50,7 @@ coord_final<-cbind(coord_id,coord)
 which(coord_final$coord_id==61)
 
 ## Read database
-DF<-read.table("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/poly_GT_final_20200111.csv",header=T,sep=";")
+DF<-read.table("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/poly_GT_final_20210622_sedID.csv",header=T,sep=";")
 str(DF)
 
 DF$Point<-as.character(DF$Point) #to allow it to merge well with the spatial points id. Factors suck, they have levels and shit
@@ -143,5 +143,5 @@ plot(poly_GT[which(poly_GT$Point=="3333100"),], col="red")
 
 plot(poly_GT[which(poly_GT$Point=="3323100"|poly_GT$Point=="3333100"),], col=c("blue","red"))
 
-writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT_20210113",driver="ESRI Shapefile",overwrite=F)
-
+#writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT_20210113",driver="ESRI Shapefile",overwrite=F)
+writeOGR(poly_GT,"./Data_out/Polygons",layer="poly_GT_20210622",driver="ESRI Shapefile",overwrite=F)

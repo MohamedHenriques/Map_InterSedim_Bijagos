@@ -1,4 +1,4 @@
-setwd("D:/Work/FCUL/Doutoramento/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
+setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
 
@@ -8,7 +8,7 @@ packs<-c("data.table","raster","ggplot2","rgdal","viridis","sp","RColorBrewer","
 lapply(packs,require,character.only=T)
 
 ##Load granulometry data
-Gra<-fread("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201126_OK.csv")
+Gra<-fread("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Granulometry/Data_gran_20201126_OK.csv")
 
 str(Gra)
 
@@ -25,6 +25,7 @@ Gra3<-Gra2[,-1]
 
 ###Data with percent for ploting
 Gra11<-Gra[!(Gra$Sed_ID==100 | Gra$Sed_ID==700 | Gra$Sed_ID==3346 | Gra$Sed_ID==3549),c(1,8:12)] # clean database 
+colnames(Gra11)[2:6]<-c(2000,500,250,63,0)
 
 aa<-melt(Gra11,id.vars = "Sed_ID")
 Gra22<-dcast(aa,variable~Sed_ID,fun.aggregate = mean)
@@ -73,7 +74,7 @@ cor.test(G5$mud,G5$Mean.fw.phi)
 G5[,Sed_ID:=as.numeric(gsub("X","",sedID))]
 G6<-setorder(G5,Sed_ID)
 
-Gra111<-setorder(Gra1,Sed_ID)
+Gra111<-setorder(Gra11,Sed_ID)
 
 #which(G6$Sed_ID!=Gra111$Sed_ID)
 
@@ -114,7 +115,7 @@ ggplot(Gra_F1,aes(x=`0`,y=Mean.fw.phi))+
 #crs(GNB1)
 
 
-GT<-readOGR("./Data_out/Polygons/poly_GT_20210113.shp")
+GT<-readOGR("./Data_out/Polygons/poly_GT_20210622.shp") #created in script GT_Plot_shapes_creation.R
 
 #plot(GNB1)
 plot(GT, col="red")
@@ -123,18 +124,24 @@ plot(GT, col="red")
 #GT_DF<-GT@data
 #str(GT_DF)
 
-Gra_F[,Point:=as.factor(Sed_ID)]
+#Gra_F[,Point:=as.factor(Sed_ID)]
+Gra_F[,sed_Id:=as.factor(Sed_ID)]
 
 ###Check for duplicated ID
-AA<-data.frame(table(Gra_F$Point))
+AA<-data.frame(table(Gra_F$sed_Id))
 AA[AA$Freq > 1,]
 
-###quick fix, deal with this sediment duplication later - check Gra_F dor the index row to delete - it changes with every new db
-Gra_Final<-unique(Gra_F,by="Point")
+###quick fix, deal with this sediment duplication later - check Gra_F for the index row to delete - it changes with every new db
+Gra_Final<-unique(Gra_F,by="sed_Id")
 #Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
-GT_Final<-merge(GT,Gra_Final,by="Point",all.y=T)
+#Gra_Final$Sed_class<-substr(Gra_Final$Sediment,1,regexpr(",",Gra_Final$Sediment)-1)
+#Gra_Final$Sed_class1<-factor(Gra_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
+#write.table(Gra_Final,"Data_out/db/Gra_Final_20210622.csv",sep=";",row.names=F)
+
+GT_Final<-merge(GT,Gra_Final,by="sed_Id",all.y=T)
 plot(GT_Final)
+table(is.na(GT_Final$Sed_ID))
 
 GT_Final$Sed_class<-substr(GT_Final$Sediment,1,regexpr(",",GT_Final$Sediment)-1)
 GT_Final$Sed_class1<-factor(GT_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
@@ -142,45 +149,54 @@ GT_Final$Class_22<-factor(GT_Final$Class_2,levels=c("beach_sand","sand","muddy_s
 
 length(unique(GT$Point))
 length(unique(Gra_Final$Point))
-length(unique(GT_Final$Point))
+length(unique(GT_Final$Point.x))
+
+length(unique(GT$sed_Id))
+length(unique(Gra_Final$sed_Id))
+length(unique(GT_Final$sed_Id))
 
 ID_GT<-as.numeric(as.character(unique(GT$Point)))
-ID_Gra<-as.numeric(as.character(unique(Gra_Final$Point)))
+ID_Gra<-as.numeric(as.character(unique(Gra_Final$sed_Id)))
 ID_GT_Final<-as.numeric(as.character(unique(GT_Final$Point)))
 
-###These sed IDs are from Adonga, which is not in the used GT polygon shapefile
+###These sed IDs are from Adonga, which is not in the used GT polygon shapefile. but theres 2 points (3075 and 3118) that I don't know what they are
 setdiff(ID_Gra,ID_GT_Final)
 setdiff(ID_Gra,ID_GT)
 
-plot(GT_Final,col="red")
-writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210113",driver="ESRI Shapefile",overwrite=F)
-
+###remove column names with redundant sed id
 View(GT_Final@data)
+GT_Final1<-GT_Final[,-c(1,27)]
+#names(GT_Final1)[1]<-"Point"
+View(GT_Final1@data)
+
+plot(GT_Final1,col="red")
+#writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210113",driver="ESRI Shapefile",overwrite=F)
+writeOGR(GT_Final1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210622",driver="ESRI Shapefile",overwrite=F)
 
 
-ggplot(GT_Final@data,aes(x=Class_22,y=Sed_class1))+
+ggplot(GT_Final1@data,aes(x=Class_22,y=Sed_class1))+
   geom_point(size=3.5)+
   #stat_summary(size=1)+
   scale_x_discrete(limits=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
 
-ggplot(GT_Final@data,aes(x=Class_3,y=mud,col=Class_22))+
+ggplot(GT_Final1@data,aes(x=Class_3,y=mud,col=Class_22))+
   #geom_point(size=3.5)+
   stat_summary(size=0.7,na.rm=F, position = position_dodge(width = 0.2))+
   scale_x_discrete(limits=c(NA,"uca","macro_uca"))
 
-ggplot(GT_Final@data,aes(x=Sed_class1,y=Mean.fw.phi,col=Class_22))+
+ggplot(GT_Final1@data,aes(x=Sed_class1,y=Mean.fw.phi,col=Class_22))+
   #geom_point(size=2,position=position_jitter(width=.1, height=0))+
   stat_summary(size=1,position = position_dodge(width = 0.5))
 
-ggplot(GT_Final@data,aes(x=Class_22,y=mud))+
+ggplot(GT_Final1@data,aes(x=Class_22,y=mud))+
   geom_point(size=1)+
   stat_summary(size=1)
 
-ggplot(GT_Final@data,aes(x=Class_22,y=Sed_class1,col=GT_Final$`D50(um)`))+
+ggplot(GT_Final1@data,aes(x=Class_22,y=Sed_class1,col=GT_Final1$`D50(um)`))+
   geom_point(size=2,position=position_dodge(width=.2))
   #stat_summary(size=1)
 
-ggplot(GT_Final@data,aes(x=Sed_class1,y=mud))+
+ggplot(GT_Final1@data,aes(x=Sed_class1,y=mud))+
   geom_point(size=1)+
   stat_summary(size=1)
 
