@@ -59,7 +59,11 @@ system.time(
 endCluster()
 beep(3)
 
+<<<<<<< HEAD
 saveRSTBX(PCA_tot_sel1,"Data_out/PCA/PCA_tot_sel1",format="raster",overwrite=F)
+=======
+saveRSTBX(PCA_tot_sel1,"Data_out/PCA/PCA_tot_sel1",format="raster",overwrite=T)
+>>>>>>> c73a2ea21b3e4f5da52dd4aaaaf58d31013d9f1c
 PCA_tot_sel1_map<-PCA_tot_sel1$map
 plot(PCA_tot_sel1[[1]])
 summary(PCA_tot_sel1$model)

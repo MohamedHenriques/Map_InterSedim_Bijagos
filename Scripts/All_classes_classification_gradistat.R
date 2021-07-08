@@ -2009,7 +2009,11 @@ PCA_mg1_tot2<-PCA_tot_map[[1:11]]
 start<-Sys.time()
 set.seed(20)
 beginCluster(7)
+<<<<<<< HEAD
 SC1_allclass_mg1_PCA<-superClass(img=PCA_mg1_tot2,model="rf",trainData=GT_c_l0_t_mg1,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1,polygonBasedCV=F,predict=T,
+=======
+SC1_allclass_mg1_PCA<-superClass(img=PCA_mg1_tot1,model="rf",trainData=GT_c_l0_t_mg1,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1,polygonBasedCV=F,predict=T,
+>>>>>>> c73a2ea21b3e4f5da52dd4aaaaf58d31013d9f1c
                                  predType="raw",filename=NULL)
 endCluster()
 beep(3)
