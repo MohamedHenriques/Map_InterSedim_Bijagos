@@ -28,22 +28,8 @@ names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_2020
                           "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
                           "visible_multi")
 
-### subset sat stack to select bands to preform a pca aiming at separating wet and dry areas
-sel_WD<-c("B08_20200204","B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-          "NDWI","mNDWI","NDMI","NDMI1","VH_VV")
-sat_WD<-raster::subset(sat,sel_WD)
-names(sat_WD)
 
-### PCA to seperate wet and dry areas
-#table(is.na(sat_WD))
-beginCluster(7)
-system.time(
-  PCA_WD<-rasterPCA(sat_WD,spca=T,nsnSamples = NULL,maskCheck=F)
-)
-endCluster()
-beep(3)
-
-saveRSTBX(PCA_WD,"Data_out/PCA/PCA_WD",format="raster",overwrite=F)
+PCA_WD<-readRSTBX("Data_out/PCA/PCA_WD,tif") ##created in script PCAs.R
 PCA_map<-PCA_WD$map
 plot(PCA_map[[1]])
 summary(PCA_WD$model)

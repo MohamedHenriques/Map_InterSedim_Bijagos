@@ -1,39 +1,40 @@
-
-setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
+OS <- .Platform$OS.type
+if (OS == "windows"){
+  setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  print(paste("working on",OS,getwd()))
+} else if (OS == "unix"){
+  setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
+  print(paste("working on",OS,getwd()))
+} else {
+  print("ERROR: OS could not be identified")
+}
 
 packs<-c("sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
+if(length(npacks)) install.packages(npacks)
+#install_github("vqv/ggbiplot")
 lapply(packs,require,character.only=T)
 
 ## Load polygons with info on concluded sediment so far 20201113
 #system.time(GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20201126.shp"))
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210113.shp") # created in script Granulometry_test.R
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701.shp") # created in script Granulometry_test.R
 #plot(GT, add=F, col="red")
 ##Load GT polygons
-GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
+#GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
 ## Load exposure model
-bat<-raster("C:/Doutoramento1/Digital elevation and exposure time model/dem_104_469.tif")
-#crs(bat)
-#plot(bat)
+#bat_bub<-raster("C:/Doutoramento1/Digital elevation and exposure time model/dem_104_469.tif")
+#crs(bat_bub)
+#plot(bat_bub)
 
+#bat_bol<-raster("rasters_in/mask_int_02.tif")
+#plot(bat_bol,add=F)
+#plot(GT,col="red",add=T)
 
-#########Jump this, since we're aiming to do this for all the area now ##############################################
-
-###Cut bat and GT polygons for Urok area
-Urok<-readOGR(dsn="Shapefiles/Urok_shape",layer="Urok_shapes")
-crs(Urok)<-crs(bat)
-#plot(Urok, add=T, col="red")
-
-bat_Urok<-crop(bat,Urok)
-#plot(bat_Urok)
-
-GT_Urok<-crop(GT,Urok)
-plot(GT_Urok, col="red", add=F)
-######################################################################################################################
 ### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
-intmask<-raster("Data_out/mask/final_mask_20210113.tif")
-#plot(intmask,colNA=1)
+intmask<-raster("Data_out/mask/final_mask_20210708.tif")
+plot(intmask,colNA=1)
 
 ## Mask bathymetry
 ### Urok
@@ -59,34 +60,43 @@ names(S1_c)<-c("S1_20200128_VH","S1_20200128_VV")
 
 ##Load S2 images 20200204
 path<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bubaque/im_20200204/2A"
-files<-list.files(path=path,pattern=".tif")
-S2_20200204<-raster(paste(path,files[1],sep="/"))
+files<-list.files(path=path,pattern=".tif",full.names = T)
+S2_20200204<-stack(files)
+#S2_20200204<-raster(paste(path,files[1],sep="/"))
 
-for(i in 2:length(files)) {
-    S2_20200204<-stack(S2_20200204,paste(path,files[i],sep="/"))
-  }
+#for(i in 2:length(files)) {
+    #S2_20200204<-stack(S2_20200204,paste(path,files[i],sep="/"))
+  #}
 
-S2_20200204
 names(S2_20200204)
 #beep()
 
 #plot(S2_20200204)
 
-## Check extebt of images to prepare tp stack all together
+## Convert to true reflectances
+beginCluster()
+S2_20200204_t<- S2_20200204/10000
+endCluster()
+S2_20200204_t
+plot(S2_20200204_t)
+
+## Check extebt of images to prepare to stack all together
 
 extent(bat)==extent(intmask)
-extent(S2_20200204)==extent(intmask)
+extent(S2_20200204_t)==extent(intmask)
 extent(S1_c)==extent(intmask)
 
 ## Resample sat image to enable stacking
 beginCluster(7)
 S1_cr<-resample(S1_c,intmask,method="bilinear")
 #plot(S1_cr)
+S2_20200204_tr<-resample(S2_20200204_t,intmask,method="bilinear")
+#plot(S1_cr)
 endCluster()
-extent(S1_cr)==extent(intmask)
+extent(S2_20200204_tr)==extent(intmask)
 
 ##Stack images
-all<-stack(S2_20200204,S1_cr,bat)
+all<-stack(S2_20200204_tr,S1_cr)
 #plot(all)
 
 ## mask intertidal area

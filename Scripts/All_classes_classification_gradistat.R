@@ -29,7 +29,7 @@ names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_2
 GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
 DF2<-data.table(GT_c1@data)
 str(DF2)
-
+write.table(DF2,"Data_out/db/GT_c1.csv",row.names=F,sep=";")
 #################################################################
 ##################################################################
 
@@ -1909,7 +1909,7 @@ DF4_1[,.(table(finos_grad))]
 DF4_1[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
 DF4_1[,.(table(Final_finos_grad))]
 DF4_4<-DF4_1[!(Final_finos_grad=="uca_sandy_010_Medium Sand")] ## Because we only have 2 polygons for now
-DF4_4[!(Island=="Adonga"),.(table(Final_finos_grad))]
+DF4_4[,.(table(Final_finos_grad))]
 
 
 set.seed(200)
@@ -1973,7 +1973,7 @@ sat_mg1_sel<-subset(sat_m1_all,c()) ## selected according to PCA and correlation
 start<-Sys.time()
 set.seed(20)
 beginCluster(7)
-SC1_allclass_mg1_sel<-superClass(img=sat_mg1_sel,model="rf",trainData=GT_c_l0_t_mg1,responseCol="cvr_sd_g",valData=GT_c_l0_v_mg1,polygonBasedCV=F,predict=T,
+SC1_allclass_mg1_sel<-superClass(img=sat_mg1_sel,model="rf",trainData=GT_c_l0_t_mg1,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1,polygonBasedCV=F,predict=T,
                                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
@@ -1993,6 +1993,44 @@ d1<-crop(SC1_allclass_mg1_sel$map,d)
 plot(d1,colNA=1,col=rainbow(15))
 
 writeRaster(SC1_allclass_mg1_sel$map,"Data_out/class_tif/SC1_allclass_mg1_sel.tif",overwrite=F)
+
+
+
+####Now with PCA of variables
+PCA_tot<-readRSTBX("Data_out/PCA/PCA_tot.tif")
+summary(PCA_tot$model)
+PCA_tot_map<-PCA_tot$map
+names(PCA_tot_map)
+PCA_mg1_tot1<-PCA_tot_map[[1:7]] ## PCA selection of bands
+PCA_mg1_tot2<-PCA_tot_map[[1:11]]
+
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_mg1_PCA<-superClass(img=PCA_mg1_tot2,model="rf",trainData=GT_c_l0_t_mg1,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1,polygonBasedCV=F,predict=T,
+                                 predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_mg1_PCA<-end-start
+
+saveRSTBX(SC1_allclass_mg1_PCA,"Data_out/models/SC1_allclass_mg1_PCA",format="raster",overwrite=F)
+SC1_allclass_mg1_PCA<-readRSTBX("Data_out/models/SC1_allclass_mg1_PCA.tif")
+
+SC1_allclass_mg1_PCA$model$finalModel$importance
+
+plot(SC1_allclass_mg1_PCA$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_mg1_PCA$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_mg1_PCA$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_mg1_PCA$map,"Data_out/class_tif/SC1_allclass_mg1_PCA.tif",overwrite=F)
+
+
 
 
 
@@ -2101,7 +2139,58 @@ writeRaster(SC1_allclass_mg1a_sel$map,"Data_out/class_tif/SC1_allclass_mg1a_sel.
 
 
 
+####Now with PCA of variables
+PCA_tot<-readRSTBX("Data_out/PCA/PCA_tot.tif")
+summary(PCA_tot$model)
+PCA_tot_map<-PCA_tot$map
+names(PCA_tot_map)
+PCA_mg1_tot1<-PCA_tot_map[[1:7]] ## PCA selection of bands
+PCA_mg1_tot2<-PCA_tot_map[[1:11]]
 
+sat_seds<-stack("Data_out/Stack/sat_seds.tif")
+names(sat_seds)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                   "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                   "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                   "visible_multi")
+
+beginCluster(7)
+PCA_mg1_tot1_seds<-mask(PCA_mg1_tot1,sat_seds[[1]])
+endCluster()
+beep(3)
+writeRaster(PCA_mg1_tot1_seds,"Data_out/PCA/PCA_mg1_tot1_seds.tif")
+plot(PCA_mg1_tot1_seds[[1]],colNA=1)
+
+beginCluster(7)
+PCA_mg1_tot2_seds<-mask(PCA_mg1_tot2,sat_seds[[1]])
+endCluster()
+beep(3)
+writeRaster(PCA_mg1_tot2_seds,"Data_out/PCA/PCA_mg1_tot2_seds.tif")
+plot(PCA_mg1_tot2_seds[[1]],colNA=1)
+
+### Supervised class with rstoolbox and rf
+start<-Sys.time()
+set.seed(20)
+beginCluster(7)
+SC1_allclass_mg1a_PCA<-superClass(img=PCA_mg1_tot2_seds,model="rf",trainData=GT_c_l0_t_mg1a,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1a,polygonBasedCV=F,predict=T,
+                                  predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_mg1a_PCA<-end-start
+
+saveRSTBX(SC1_allclass_mg1a_PCA,"Data_out/models/SC1_allclass_mg1a_PCA",format="raster",overwrite=F)
+SC1_allclass_mg1a_PCA<-readRSTBX("Data_out/models/SC1_allclass_mg1a_PCA.tif")
+
+SC1_allclass_mg1a_PCA$model$finalModel$importance
+
+plot(SC1_allclass_mg1a_PCA$map, colNA=1, main="Finos class: muddy=>=10%; sandy<10%")
+
+SC1_allclass_mg1a_PCA$classMapping
+d<-drawExtent()
+d1<-crop(SC1_allclass_mg1a_PCA$map,d)
+plot(d1,colNA=1,col=rainbow(15))
+
+writeRaster(SC1_allclass_mg1a_PCA$map,"Data_out/class_tif/SC1_allclass_mg1a_PCA.tif")
 
 
 
@@ -2180,6 +2269,64 @@ writeRaster(SC1_mg1uca_tif,"Data_out/models/SC1_mg1uca.tif")
 xx<-drawExtent()
 subs_t<-crop(SC1_mg1uca$map,xx)
 plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+
+
+
+####Now with PCA of variables
+PCA_tot<-readRSTBX("Data_out/PCA/PCA_tot.tif")
+summary(PCA_tot$model)
+PCA_tot_map<-PCA_tot$map
+names(PCA_tot_map)
+PCA_mg1_tot1<-PCA_tot_map[[1:7]] ## PCA selection of bands
+PCA_mg1_tot2<-PCA_tot_map[[1:11]]
+
+sat_uca<-stack("Data_out/Stack/sat_uca.tif")
+names(sat_uca)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+                  "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
+                  "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
+                  "visible_multi")
+
+beginCluster(7)
+PCA_mg1_tot1_uca<-mask(PCA_mg1_tot1,sat_uca[[1]])
+endCluster()
+beep(3)
+writeRaster(PCA_mg1_tot1_uca,"Data_out/PCA/PCA_mg1_tot1_uca.tif")
+plot(PCA_mg1_tot1_uca[[1]],colNA=1)
+
+beginCluster(7)
+PCA_mg1_tot2_uca<-mask(PCA_mg1_tot2,sat_uca[[1]])
+endCluster()
+beep(3)
+writeRaster(PCA_mg1_tot2_uca,"Data_out/PCA/PCA_mg1_tot2_uca.tif")
+plot(PCA_mg1_tot2_uca[[1]],colNA=1)
+
+
+######## Random forest class #########
+start<-Sys.time()
+
+set.seed(12)
+beginCluster(7)
+SC1_mg1uca_PCA<-superClass(img=PCA_mg1_tot1_uca,model="rf",trainData=GT_c_l0_t_mg1uca,responseCol="Final_finos_grad",valData=GT_c_l0_v_mg1uca,polygonBasedCV=F,predict=T,
+                       predType="raw",filename=NULL)
+endCluster()
+beep(3)
+end<-Sys.time()
+dif_mg1uca<-end-start
+
+saveRSTBX(SC1_mg1uca_PCA,"Data_out/models/SC1_mg1uca_PCA",fomat="raster",overwrite=F)
+SC1_mg1uca_PCA<-readRSTBX("Data_out/models/SC1_mg1uca_PCA")
+
+SC1_mg1uca_PCA$model$finalModel$importance
+
+SC1_mg1uca_PCA$classMapping
+plot(SC1_mg1uca_PCA$map,colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+SC1_mg1uca_PCA_tif<-SC1_mg1uca_PCA$map
+writeRaster(SC1_mg1uca_PCA_tif,"Data_out/models/SC1_mg1uca_PCA.tif")
+
+xx<-drawExtent()
+subs_t<-crop(SC1_mg1uca$map,xx)
+plot(subs_t, colNA=1,col=c("cadetblue","lightgrey","cadetblue1"))
+
 
 
 
