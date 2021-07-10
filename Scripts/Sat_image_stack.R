@@ -33,7 +33,7 @@ GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701.shp") # created in scr
 #plot(GT,col="red",add=T)
 
 ### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
-intmask<-raster("Data_out/mask/final_mask_20210708.tif")
+intmask<-raster("Data_out/mask/final_mask_20210710.tif")
 plot(intmask,colNA=1)
 
 ## Mask bathymetry
@@ -45,7 +45,7 @@ plot(intmask,colNA=1)
 
 ### Crop GT to keep only points in the available scene
 GT_c<-crop(GT,intmask)
-#plot(GT_c)
+#plot(GT_c, add=T, col="red")
 
 
 ## Load other images
@@ -59,51 +59,80 @@ names(S1_c)<-c("S1_20200128_VH","S1_20200128_VV")
 
 
 ##Load S2 images 20200204
-path<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bubaque/im_20200204/2A"
-files<-list.files(path=path,pattern=".tif",full.names = T)
-S2_20200204<-stack(files)
+path_bub<-"C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bubaque/im_20200204/2A"
+files_bub<-list.files(path=path_bub,pattern=".tif",full.names = T)
+S2_20200204_bub<-stack(files_bub)
 #S2_20200204<-raster(paste(path,files[1],sep="/"))
 
 #for(i in 2:length(files)) {
     #S2_20200204<-stack(S2_20200204,paste(path,files[i],sep="/"))
   #}
 
-names(S2_20200204)
-#beep()
+names(S2_20200204_bub)
+#plot(S2_20200204_bub)
 
-#plot(S2_20200204)
+path_bol<-"C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bolama/im_20200204/2A"
+files_bol<-list.files(path=path_bol,pattern=".tif",full.names = T)
+S2_20200204_bol<-stack(files_bol)
+names(S2_20200204_bol)
+#plot(S2_20200204_bol)
 
 ## Convert to true reflectances
 beginCluster()
-S2_20200204_t<- S2_20200204/10000
+S2_20200204_bub_t<- S2_20200204_bub/10000
 endCluster()
-S2_20200204_t
-plot(S2_20200204_t)
+S2_20200204_bub_t
+plot(S2_20200204_bub_t)
 
-## Check extebt of images to prepare to stack all together
+beginCluster()
+S2_20200204_bol_t<- S2_20200204_bol/10000
+endCluster()
+S2_20200204_bol_t
+plot(S2_20200204_bol_t)
 
-extent(bat)==extent(intmask)
-extent(S2_20200204_t)==extent(intmask)
+### unite the 2 sentinel2 scenes
+S2_20200204_tot<-merge(S2_20200204_bub_t,S2_20200204_bol_t,overlap=T)
+plot(S2_20200204_tot)
+
+names(S2_20200204_bub_t)
+names(S2_20200204_bol_t)
+
+names(S2_20200204_tot)<-names(S2_20200204_bub_t)
+
+beginCluster(6)
+S2_20200204_tot_c<-crop(S2_20200204_tot,intmask)
+endCluster()
+plot(S2_20200204_tot_c)
+
+
+## Check extent of images to prepare to stack all together
+
+#extent(bat)==extent(intmask)
+extent(S2_20200204_tot_c)==extent(intmask)
 extent(S1_c)==extent(intmask)
 
 ## Resample sat image to enable stacking
-beginCluster(7)
+beginCluster(6)
 S1_cr<-resample(S1_c,intmask,method="bilinear")
+
 #plot(S1_cr)
-S2_20200204_tr<-resample(S2_20200204_t,intmask,method="bilinear")
+#S2_20200204_tot_r<-resample(S2_20200204_tot,intmask,method="bilinear")
 #plot(S1_cr)
 endCluster()
-extent(S2_20200204_tr)==extent(intmask)
+#extent(S2_20200204_tr)==extent(intmask)
+extent(S1_cr)==extent(intmask)
+plot(S1_cr)
 
 ##Stack images
-all<-stack(S2_20200204_tr,S1_cr)
+all<-stack(S2_20200204_tot_c,S1_cr)
 #plot(all)
 
 ## mask intertidal area
-beginCluster(7)
+beginCluster(6)
 all_m<-mask(all,intmask)
 endCluster()
-beep()
+beep(2)
+plot(all_m)
 
 ##Create index layers
 NDWI<-(all_m$B03_20200204-all_m$B08_20200204)/(all_m$B03_20200204+all_m$B08_20200204)
@@ -114,70 +143,30 @@ NDVI<-(all_m$B08_20200204-all_m$B04_20200204)/(all_m$B08_20200204+all_m$B04_2020
 RVI<-(4*all_m$S1_20200128_VH)/(all_m$S1_20200128_VV+all_m$S1_20200128_VH)
 VH_VV<-(all_m$S1_20200128_VH)/(all_m$S1_20200128_VV)
 MSAVI2<-(2*all_m$B08_20200204+1-sqrt((2*all_m$B08_20200204+1)^2-8*(all_m$B08_20200204-all_m$B04_20200204)))/2
-
+intensity<-1/30.5*(all_m$B02_20200204+all_m$B03_20200204+all_m$B04_20200204)
+#visible_multi<-all_m$B02_20200204*all_m$B03_20200204*all_m$B04_20200204
+rededge_multi<-all_m$B05_20200204*all_m$B06_20200204*all_m$B07_20200204
+iv_multi<-all_m$B08_20200204*all_m$B08A_20200204
 beep(3)
 
-plot(NDWI)
-plot(mNDWI)
-plot(NDMI)
-plot(NDMI1)
-plot(NDVI)
-plot(RVI)
-plot(VH_VV)
-plot(MSAVI2)
+#plot(NDWI)
+#plot(mNDWI)
+#plot(NDMI)
+#plot(NDMI1)
+#plot(NDVI)
+#plot(RVI)
+#plot(VH_VV)
+#plot(MSAVI2)
 
-###Load new bands with indexes created by belo
-path1<-"D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/Files_sat_cap/Sat_image"
-files1<-list.files(path=path1,pattern=".tif")
-S2_index<-raster(paste(path1,files1[1],sep="/"))
 
-for(i in 2:length(files1)) {
-  S2_index<-stack(S2_index,paste(path1,files1[i],sep="/"))
-}
 
-S2_index
-names(S2_index)
+sat1<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,intensity,rededge_multi,iv_multi)
+sat<-sat1[[-9]] ##remove band 9, cirrus cloud, not relevant
+names(sat)[13:23]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
 
-sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,S2_index)
-names(sat)[15:22]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2")
+
 
 #plot(sat)
-writeRaster(sat,"Data_out/Stack/Final_stack.tif",format="GTiff",overwrite=F)
-sat<-stack("Data_out/Stack/Final_stack.tif")
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
-              "visible_multi")
-
-## Extract values 
-beginCluster(7)
-system.time(DF<-extract(sat,GT_c1,cellnumbers=T,df=F,factors=T,nl=26,na.rm=T))
-endCluster()
-beep(3)
-
-
-##Remove points that do not fall into Urok area
-#names(DF)<-seq_along(DF)
-#DF1<-Filter(Negate(is.null), DF)
-Point<-seq_along(DF)
-
-###Unpack list and ppend it to a data frame
-n<-c(colnames(DF[[1]]),colnames(GT_c1@data))
-m<-matrix(data=NA,nrow=1,ncol=length(n))
-colnames(m)<-n
-
-for(i in Point) {
-  m<-rbind(m,cbind(DF[i],GT_c1@data[i,]))
-  print(paste(i,"done"))
-}
-
-m1<-m[-1,] ###remove first row of NAs
-
-##Check for pixels that fall outside intertidal masked area
-unique(m1[is.na(m1$B02_20200204),"Point"])
-
-#write.table(m1,"Data_out/db/GraVSSat_db_20210114.csv",row.names=F,sep=";")
-
-#write.table(m1,"Data_out/db/DF_extract_20210429.csv",row.names=F,sep=";")
-write.table(m1,"Data_out/db/DF_extract_20210622.csv",row.names=F,sep=";")
+writeRaster(sat,"Data_out/Stack/Final_stack1.tif",format="GTiff",overwrite=F)
+writeRaster(sat,"Data_out/Stack/Final_stack1.grd",format="raster",overwrite=F)
 

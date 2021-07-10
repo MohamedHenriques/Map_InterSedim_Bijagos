@@ -1,21 +1,33 @@
-
-setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos")
 rm(list=ls())
 graphics.off()
+OS <- .Platform$OS.type
+if (OS == "windows"){
+  setwd("C:/Doutoramento1/R/Mapping_coastal_Habitats_Guinea_Bissau/Github/Map_InterSedim_Bijagos") # Windows file path
+  print(paste("working on",OS,getwd()))
+} else if (OS == "unix"){
+  setwd("/Users/MohamedHenriques/Work/R/Map_InterSedim_Bijagos") # MAC file path
+  print(paste("working on",OS,getwd()))
+} else {
+  print("ERROR: OS could not be identified")
+}
 
 packs<-c("randomForest","caret","sf","beepr","RStoolbox","raster","ggplot2","rgdal","viridis","randomForest","cluster","rasterVis","data.table","reshape2")
+npacks <- packs[!(packs %in% installed.packages()[,"Package"])]
+if(length(npacks)) install.packages(npacks)
+#install_github("vqv/ggbiplot")
 lapply(packs,require,character.only=T)
 
 ## Load sat img
 
-sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
-              "visible_multi")
+sat<-stack("Data_out/Stack/Final_stack1.grd") ##created in script GraVSSat_Preliminary
+names(sat)
+
+#names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
+              #"B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","NDWI","mNDWI","NDMI",
+              #"NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
 
 ##Load GT polygons (without Adonga)
-GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210622.shp") #DB creates in script Granulometry_test.R
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701.shp") #DB creates in script Granulometry_test.R
 #plot(GT)
 df<-data.table(GT@data)
 str(df)
@@ -51,7 +63,7 @@ df_adonga1[,table(Clss_22)]
 df_adonga1[,Clss_22:=factor(Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))]
 
 ### Add to the database data from granulometry made in MARE for Adonga samples
-Gra_Final<-fread("Data_out/db/Gra_Final_20210622.csv") ##created in script Granulometry_test.R
+Gra_Final<-fread("Data_out/db/Gra_Final_20210709.csv") ##created in script Granulometry_test.R
 Gra_Final[,Sed_ID1:=as.character(Sed_ID)]
 str(Gra_Final)
 Gra_Final1<-Gra_Final[,c(2:6,7:14,15:18)][]
@@ -91,7 +103,7 @@ dff<-data.table(GT_tot@data)
 
 ### Crop GT to keep only points in the available scene
 GT_c<-crop(GT_tot,sat)
-plot(GT_c)
+plot(GT_c,col="red")
 rm(GT) #Remove object no longer needed
 
 ###Check database

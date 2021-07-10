@@ -146,13 +146,16 @@ Gra_F[,sed_Id:=as.factor(Sed_ID)]
 AA<-data.frame(table(Gra_F$sed_Id))
 AA[AA$Freq > 1,]
 
+
+Gra_F[,table(Sediment)]
+
 ###quick fix, deal with this sediment duplication later - check Gra_F for the index row to delete - it changes with every new db
 #Gra_Final<-unique(Gra_F,by="sed_Id")
 #Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
-#Gra_Final$Sed_class<-substr(Gra_Final$Sediment,1,regexpr(",",Gra_Final$Sediment)-1)
-#Gra_Final$Sed_class1<-factor(Gra_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
-#write.table(Gra_Final,"Data_out/db/Gra_Final_20210622.csv",sep=";",row.names=F)
+Gra_F$Sed_class<-substr(Gra_F$Sediment,1,regexpr(",",Gra_Final$Sediment)-1)
+Gra_F$Sed_class1<-factor(Gra_F$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
+write.table(Gra_F,"Data_out/db/Gra_Final_20210709.csv",sep=";",row.names=F)
 
 GT_Final<-merge(GT,Gra_F,by="sed_Id",all.y=T)
 plot(GT_Final)
