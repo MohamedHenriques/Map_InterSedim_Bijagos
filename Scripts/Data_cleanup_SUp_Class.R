@@ -1,4 +1,5 @@
 rm(list=ls())
+gc()
 graphics.off()
 OS <- .Platform$OS.type
 if (OS == "windows"){
@@ -23,7 +24,7 @@ sat<-stack("Data_out/Stack/Final_stack1.grd") ##created in script GraVSSat_Preli
 names(sat)
 
 #names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-              #"B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","NDWI","mNDWI","NDMI",
+              #"B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","Final_DEM_nodelay","NDWI","mNDWI","NDMI",
               #"NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
 
 ##Load GT polygons (without Adonga)
@@ -253,6 +254,11 @@ DF[cover_over=="bare_sediment"&c_uca>=80&uc_dnst!="L",bare_sediment:="uca"] ##re
 ##Clean waterbody
 DF[c_water>=85,cover_over:="water_body"]
 
+##Check coverover class
+DF[,unique(cover_over)]
+DF[cover_over=="shell_uca",cover_over:="uca"]
+DF[,unique(cover_over)]
+
 ###################################################
 #####Creating new columns for habitat types of level 0
 
@@ -317,6 +323,7 @@ DF[,unique(uca)]
 
 ###Introduce new columns on polygons
 DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,cover_overA,cover_sed_field,cover_sed_grad,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
+
 
 GT_c1<-merge(GT_c,DF1,by="Point")
 #plot(GT_c1)

@@ -23,14 +23,13 @@ GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701.shp") # created in scr
 #plot(GT, add=F, col="red")
 ##Load GT polygons
 #GT_c1<-readOGR("Data_out/Polygons/GT_c1.shp") ##created in script Data_cleanup_SUp_Class
-## Load exposure model
-#bat_bub<-raster("C:/Doutoramento1/Digital elevation and exposure time model/dem_104_469.tif")
-#crs(bat_bub)
-#plot(bat_bub)
 
-#bat_bol<-raster("rasters_in/mask_int_02.tif")
-#plot(bat_bol,add=F)
-#plot(GT,col="red",add=T)
+
+## Load DEM
+bat2<-raster("Data_out/DEM/Final_DEM/Final_DEM_nodelay.tif")
+#crs(bat2)
+#plot(bat2)
+
 
 ### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
 intmask<-raster("Data_out/mask/final_mask_20210710.tif")
@@ -50,7 +49,7 @@ GT_c<-crop(GT,intmask)
 
 ## Load other images
 ###Load S1 image
-s1_20200128<-stack("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200128_1917/S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.tif")
+s1_20200128<-stack("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200128_1917/full_nodelay/S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC.tif")
 #plot(s1_20200128)
 
 S1_c<-crop(s1_20200128,intmask)
@@ -103,16 +102,17 @@ beginCluster(6)
 S2_20200204_tot_c<-crop(S2_20200204_tot,intmask)
 endCluster()
 plot(S2_20200204_tot_c)
-
+writeRaster(S2_20200204_tot_c,"Data_out/SatImg_StudyArea/S2_20200204_tot_c.tif", format="GTiff",overwrite=F)
+writeRaster(S2_20200204_tot_c,"Data_out/SatImg_StudyArea/S2_20200204_tot_c.grd", format="raster",overwrite=F)
 
 ## Check extent of images to prepare to stack all together
 
-#extent(bat)==extent(intmask)
+extent(bat2)==extent(intmask)
 extent(S2_20200204_tot_c)==extent(intmask)
 extent(S1_c)==extent(intmask)
 
 ## Resample sat image to enable stacking
-beginCluster(6)
+beginCluster()
 S1_cr<-resample(S1_c,intmask,method="bilinear")
 
 #plot(S1_cr)
@@ -124,11 +124,12 @@ extent(S1_cr)==extent(intmask)
 plot(S1_cr)
 
 ##Stack images
-all<-stack(S2_20200204_tot_c,S1_cr)
+all<-stack(S2_20200204_tot_c,S1_cr,bat2)
 #plot(all)
+names(all)
 
 ## mask intertidal area
-beginCluster(6)
+beginCluster()
 all_m<-mask(all,intmask)
 endCluster()
 beep(2)
@@ -162,11 +163,11 @@ beep(3)
 
 sat1<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,intensity,rededge_multi,iv_multi)
 sat<-sat1[[-9]] ##remove band 9, cirrus cloud, not relevant
-names(sat)[13:23]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
+names(sat)[14:24]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
 
 
 
 #plot(sat)
-writeRaster(sat,"Data_out/Stack/Final_stack1.tif",format="GTiff",overwrite=F)
-writeRaster(sat,"Data_out/Stack/Final_stack1.grd",format="raster",overwrite=F)
+writeRaster(sat,"Data_out/Stack/Final_stack1.tif",format="GTiff",overwrite=T)
+writeRaster(sat,"Data_out/Stack/Final_stack1.grd",format="raster",overwrite=T)
 

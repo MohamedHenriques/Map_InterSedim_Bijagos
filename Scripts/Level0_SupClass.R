@@ -19,11 +19,8 @@ lapply(packs,require,character.only=T)
 
 ## Load sat img
 
-sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-              "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-              "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","iv_multi","rededge_multi","rededge_sum",
-              "visible_multi")
+sat<-stack("Data_out/Stack/Final_stack1.grd") ##created in script GraVSSat_Preliminary
+names(sat)
 
 ##Load wet and dry masks (produced in script SupClass_WetVSDry)
 #dry_mask<-raster("Data_out/mask/dry_mask.tif")
@@ -120,7 +117,7 @@ start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1<-superClass(img=sat2,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
