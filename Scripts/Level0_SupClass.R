@@ -60,8 +60,8 @@ DF2<-data.table(GT_c1@data)
 
 ##Split data in training + validation using caret balanced splitting: Use this for final validation
 DF3<-data.table(DF2)
-DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
-DF3[,table(covr_vrA)]
+#DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
+DF3[,table(cvr_vrA)]
 DF3[,covr_vrA1:=covr_vrA][covr_vrA1=="macroalgae"&WD=="wet",covr_vrA1:="macroalgae_wet"][covr_vrA1=="macroalgae"&WD=="dry",covr_vrA1:="macroalgae_dry"]
 DF3[,table(covr_vrA1)]
 DF3[,covr_vrA2:=covr_vrA][covr_vrA2=="macroalgae"&WD=="wet",covr_vrA2:="macroalgae_wet"][covr_vrA2=="macroalgae"&WD=="dry",covr_vrA2:="macroalgae_dry"][covr_vrA2=="shell"&WD=="wet",covr_vrA2:="shell_wet"][covr_vrA2=="shell"&WD=="dry",covr_vrA2:="shell_dry"]
@@ -72,20 +72,20 @@ DF3[,covr_vrA4:=covr_vrA3][covr_vrA4=="uca"&WD=="wet",covr_vrA4:="uca_wet"][covr
 DF3[,table(covr_vrA4)]
 DF3[,covr_vrA5:=covr_vrA][covr_vrA5=="bare_sediment"&WD=="wet",covr_vrA5:="bare_sediment_wet"][covr_vrA5=="bare_sediment"&WD=="dry",covr_vrA5:="bare_sediment_dry"][covr_vrA5=="uca"&WD=="wet",covr_vrA5:="uca_wet"][covr_vrA5=="uca"&WD=="dry",covr_vrA5:="uca_dry"]
 DF3[,table(covr_vrA5)]
-DF3[,covr_vrA6:=covr_vrA][covr_vrA6=="bare_sediment",covr_vrA6:="sediments"][covr_vrA6=="uca",covr_vrA6:="sediments"]
-DF3[,table(covr_vrA6)]
+DF3[,cvr_vrA6:=as.character(cvr_vrA)][cvr_vrA6=="bare_sediment",cvr_vrA6:="sediments"][cvr_vrA6=="uca",cvr_vrA6:="sediments"]
+DF3[,table(cvr_vrA6)]
 
-set.seed(10)
-trainIndex <- createDataPartition(DF3$covr_vrA6, p = .7, 
+set.seed(1)
+trainIndex <- createDataPartition(DF3$cvr_vrA6, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 head(trainIndex)
 
 L0_train<-DF3[trainIndex]
-L0_train[,table(covr_vrA6)]
+L0_train[,table(cvr_vrA6)]
 
 L0_val<-DF3[-trainIndex]
-L0_val[,table(covr_vrA6)]
+L0_val[,table(cvr_vrA6)]
 
 
 ###Introduce new columns on training and validation polygons
@@ -102,11 +102,39 @@ GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
 #str(GT_c_l0_v@data)
 
 ### selection of bands to use
-sat1<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08A_20200204","B11_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","MSAVI2","mNDWI","NDWI","rededge_sum","RVI"))
+
+sat1<-sat[[-c(16:17,20,22:24)]]
 names(sat1)
 
-sat2<-subset(sat,c("B04_20200204","B05_20200204","B11_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469","MSAVI2","mNDWI","NDWI","intensity","rededge_sum","iv_multi","RVI"))
+sat2<-sat[[-c(1:8,14,17,19)]]
 names(sat2)
+
+sat3<-subset(sat,c("B02_20200204","B03_20200204","B04_20200204","B08A_20200204","B11_20200204","S1_20200128_VH","S1_20200128_VV","Final_DEM_nodelay","MSAVI2","mNDWI","NDWI","rededge_multi","RVI","NDVI"))
+names(sat3)
+
+sat4<-subset(sat,c("B11_20200204","S1_20200128_VH","S1_20200128_VV","Final_DEM_nodelay","MSAVI2","NDMI","NDWI","intensity","rededge_multi","iv_multi","RVI","NDVI"))
+names(sat4)
+
+PCA_tot<-readRSTBX("Data_out/PCA/PCA_tot.tif")
+summary(PCA_tot$model)
+PCA_tot$model$loadings
+PCA_tot_map<-PCA_tot$map
+
+PCA_tot1<-readRSTBX("Data_out/PCA/PCA_tot1.tif")
+summary(PCA_tot1$model)
+PCA_tot1$model$loadings
+PCA_tot1_map<-PCA_tot1$map
+
+PCA_tot_sel1<-readRSTBX("Data_out/PCA/PCA_tot_sel1")
+summary(PCA_tot_sel1$model)
+PCA_tot_sel1$model$loadings
+PCA_tot_sel1_map<-PCA_tot_sel1$map
+
+PCA_tot_sel2<-readRSTBX("Data_out/PCA/PCA_tot_sel2")
+summary(PCA_tot_sel2$model)
+PCA_tot_sel2$model$loadings
+PCA_tot_sel2_map<-PCA_tot_sel2$map
+
 
 
 
@@ -117,17 +145,42 @@ start<-Sys.time()
 
 set.seed(12)
 beginCluster(7)
-SC1<-superClass(img=sat,model="rf",trainData=GT_c_l0_t,responseCol="covr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+SC1_PCA0_10<-superClass(img=PCA_tot1_map[[1:10]],model="rf",trainData=GT_c_l0_t,responseCol="cvr_vrA6",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
                 predType="raw",filename=NULL)
 endCluster()
 beep(3)
 end<-Sys.time()
 dif<-end-start
 
-saveRSTBX(SC1,"Data_out/models/SC1_all",fomat="raster",overwrite=T)
-SC1<-readRSTBX("Data_out/models/SC1_all")
+saveRSTBX(SC1_all,"Data_out/models/SC1_all",fomat="raster",overwrite=T)
+SC1_all<-readRSTBX("Data_out/models/SC1_all")
+saveRSTBX(SC1_1,"Data_out/models/SC1_1",fomat="raster",overwrite=T)
+SC1_1<-readRSTBX("Data_out/models/SC1_1") ## First best
+saveRSTBX(SC1_2,"Data_out/models/SC1_2",fomat="raster",overwrite=T)
+SC1_2<-readRSTBX("Data_out/models/SC1_2")
+saveRSTBX(SC1_3,"Data_out/models/SC1_3",fomat="raster",overwrite=T)
+SC1_3<-readRSTBX("Data_out/models/SC1_3")
+saveRSTBX(SC1_4,"Data_out/models/SC1_4",fomat="raster",overwrite=T)
+SC1_4<-readRSTBX("Data_out/models/SC1_4") ## Second best
 
-SC1$model$finalModel$importance
+saveRSTBX(SC1_PCA_6,"Data_out/models/SC1_PCA_6",fomat="raster",overwrite=T)
+SC1_PCA_6<-readRSTBX("Data_out/models/SC1_PCA_6")
+saveRSTBX(SC1_PCA_10,"Data_out/models/SC1_PCA_10",fomat="raster",overwrite=T)
+SC1_PCA_10<-readRSTBX("Data_out/models/SC1_PCA_10") ## Best PCA
+saveRSTBX(SC1_PCA1_6,"Data_out/models/SC1_PCA1_6",fomat="raster",overwrite=T)
+SC1_PCA1_6<-readRSTBX("Data_out/models/SC1_PCA1_6")
+saveRSTBX(SC1_PCA1_10,"Data_out/models/SC1_PCA1_10",fomat="raster",overwrite=T)
+SC1_PCA1_10<-readRSTBX("Data_out/models/SC1_PCA1_10")
+saveRSTBX(SC1_PCA2_7,"Data_out/models/SC1_PCA2_7",fomat="raster",overwrite=T)
+SC1_PCA2_7<-readRSTBX("Data_out/models/SC1_PCA2_7")
+saveRSTBX(SC1_PCA2_9,"Data_out/models/SC1_PCA2_9",fomat="raster",overwrite=T)
+SC1_PCA2_9<-readRSTBX("Data_out/models/SC1_PCA2_9")
+saveRSTBX(SC1_PCA0_6,"Data_out/models/SC1_PCA0_6",fomat="raster",overwrite=T)
+SC1_PCA0_6<-readRSTBX("Data_out/models/SC1_PCA0_6")
+saveRSTBX(SC1_PCA0_10,"Data_out/models/SC1_PCA0_10",fomat="raster",overwrite=T)
+SC1_PCA0_10<-readRSTBX("Data_out/models/SC1_PCA0_10")
+
+SC1_1$model$finalModel$importance
 
 ########
 start<-Sys.time()
@@ -147,36 +200,36 @@ SC1_sel<-readRSTBX("Data_out/models/SC1_all_sel")
 
 SC1_sel$model$finalModel$importance
 
-SC1$classMapping
-plot(SC1$map,colNA=1,col=c("green","red","lightgrey","blue"))
-SC1_tif<-SC1$map
+SC1_1$classMapping
+plot(SC1_1$map,colNA=1,col=c("green","red","lightgrey","blue"))
+SC1_1_tif<-SC1_1$map
 #writeRaster(SC1_tif,"Data_out/models/SC1_selvar.tif")
 
 xx<-drawExtent()
-adonga_t<-crop(SC1$map,xx)
+adonga_t<-crop(SC1_1$map,xx)
 plot(adonga_t, colNA=1,col=c("forestgreen","red","lightgrey","blue"))
 
 
 ###Isolating sediments area
-seds_mask<-SC1_tif==3
+seds_mask<-SC1_1_tif==3
 seds_mask[seds_mask==0]<-NA # turn remaining area (coded zero) into NA
 plot(seds_mask, colNA=1)
 writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_selvar.tif", overwrite=T)
 
 ### Saving the macro
-mask_macro_t<-SC1_tif==1
+mask_macro_t<-SC1_1_tif==1
 mask_macro_t[mask_macro_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_macro_t, colNA=1)
 writeRaster(mask_macro_t,"Data_out/mask/mask_macro_t_selvar.tif", overwrite=T)
 
 ### Saving the rocks
-mask_rocks_t<-SC1_tif==2
+mask_rocks_t<-SC1_1_tif==2
 mask_rocks_t[mask_rocks_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_rocks_t, colNA=1)
 writeRaster(mask_rocks_t,"Data_out/mask/mask_rocks_t_selvar.tif", overwrite=T)
 
 ### Saving the shells
-mask_shells_t<-SC1_tif==4
+mask_shells_t<-SC1_1_tif==4
 mask_shells_t[mask_shells_t==0]<-NA # turn remaining area (coded zero) into NA
 plot(mask_shells_t, colNA=1)
 writeRaster(mask_shells_t,"Data_out/mask/mask_shells_t_selvar.tif", overwrite=T)
