@@ -22,11 +22,7 @@ p<-c("green","red","blue","grey50","lightgrey")
 
 ## Load sat img
 
-sat<-stack("Data_out/Stack/Final_stack.tif") ##created in script GraVSSat_Preliminary
-names(sat)<-names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-                          "B08A_20200204","B09_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","dem_104_469",
-                          "NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","intensity","iv_multi","rededge_multi","rededge_sum",
-                          "visible_multi")
+sat<-stack("Data_out/Stack/Final_stack1.grd") ##created in script GraVSSat_Preliminary
 
 
 PCA_WD<-readRSTBX("Data_out/PCA/PCA_WD,tif") ##created in script PCAs.R
@@ -46,71 +42,83 @@ DF3<-data.table(DF2)
 DF3[,table(cvr_vrA)]
 #DF3[,covr_vrA:=as.character(covr_vr)][covr_vrA=="water_body",covr_vrA:="bare_sediment"]
 
-set.seed(10)
-trainIndex <- createDataPartition(DF3$cvr_vrA, p = .7, 
-                                  list = FALSE, 
-                                  times = 1)
-head(trainIndex)
+DF4<-DF3[!(is.na(cvr_vrA))] ## remove 2 bad points with NA everywhere
 
-L0_train<-DF3[trainIndex]
-L0_train[,table(cvr_vrA)]
+DF4[,cvr_vrA6:=as.character(cvr_vrA)][cvr_vrA6=="bare_sediment",cvr_vrA6:="sediments"][cvr_vrA6=="uca",cvr_vrA6:="sediments"]
+DF4[,.(table(cvr_vrA6))]
 
-L0_val<-DF3[-trainIndex]
-L0_val[,table(cvr_vrA)]
+### Variable selection for water
 
-
-###Introduce new columns on training and validation polygons
-#L0_train1<-L0_train[,.(covr_vr,Point)]
-
-GT_c_l0_t<-merge(GT_c1,L0_train,by="Point",all.x=F,all.y=T)
-#plot(GT_c_l0_t,col="red")
-#str(GT_c_l0_t@data)
-
-#L0_val1<-L0_val[,.(covr_vr,Point)]
-
-GT_c_l0_v<-merge(GT_c1,L0_val,by="Point",all.x=F,all.y=T)
-#plot(GT_c_l0_v)
-#str(GT_c_l0_v@data)
-
+sat0_WD<-sat[[c(9,13,11:12,21,14,16)]]
+names(sat0_WD)
 
 #################################################
-####################### WB ##########################
+####################### WD ##########################
 
 ##Split data in training + validation using caret balanced splitting
 
-#set.seed(10)
-#trainIndex_WB <- createDataPartition(L0_train$WB, p = .7, 
-                                     #list = FALSE, 
-                                     #times = 1)
-#head(trainIndex_WB)
+DF4[,.(table(WD))]
+DF4[,.(table(WB))]
 
-#L0_train_WB<-DF3[trainIndex_WB]
-#L0_val_WB<-DF3[-trainIndex_WB]
+set.seed(10)
+trainIndex_WD <- createDataPartition(DF4$WD, p = .8, 
+                                     list = FALSE, 
+                                     times = 1)
+
+set.seed(10)
+trainIndex_WB <- createDataPartition(DF4$WB, p = .8, 
+                                     list = FALSE, 
+                                     times = 1)
+#head(trainIndex_WD)
+
+L0_train_WD<-DF4[trainIndex_WD]
+L0_val_WD<-DF4[-trainIndex_WD]
+
+L0_train_WB<-DF4[trainIndex_WB]
+L0_val_WB<-DF4[-trainIndex_WB]
 
 
 ###Introduce new columns on training and validation polygons
-#GT_c_l0_t_WB<-merge(GT_c1,L0_train_WB,by="Point",all.x=F,all.y=T)
+GT_c_l0_t_WD<-merge(GT_c1,L0_train_WD,by="Point",all.x=F,all.y=T)
+GT_c_l0_t_WB<-merge(GT_c1,L0_train_WB,by="Point",all.x=F,all.y=T)
 
-#GT_c_l0_v_WB<-merge(GT_c1,L0_val_WB,by="Point",all.x=F,all.y=T)
+GT_c_l0_v_WD<-merge(GT_c1,L0_val_WD,by="Point",all.x=F,all.y=T)
+GT_c_l0_v_WB<-merge(GT_c1,L0_val_WB,by="Point",all.x=F,all.y=T)
 
 ###create new treshold for Water
-GT_c_l0_t$WD20<-ifelse(GT_c_l0_t$c_water.x<20,"dry","wet")
-GT_c_l0_v$WD20<-ifelse(GT_c_l0_v$c_water.x<20,"dry","wet")
+#GT_c_l0_t$WD20<-ifelse(GT_c_l0_t$c_water.x<20,"dry","wet")
+#GT_c_l0_v$WD20<-ifelse(GT_c_l0_v$c_water.x<20,"dry","wet")
 
 ### Supervised class with rstoolbox and rf
 set.seed(11)
-beginCluster(7)
-SC1_WD20<-superClass(img=sat_WD,model="rf",trainData=GT_c_l0_t,responseCol="WD20",valData=GT_c_l0_v,polygonBasedCV=F,predict=T,
+beginCluster()
+SC1_WD20<-superClass(img=sat0_WD,model="rf",trainData=GT_c_l0_t_WD,responseCol="WD.y",valData=GT_c_l0_v_WD,polygonBasedCV=T,predict=T,
                    predType="raw",filename=NULL)
 endCluster()
 beep(3)
-saveRSTBX(SC1_WD30,"Data_out/models/SC1_WD30",format="raster",overwrite=T)
-SC1_WD30$classMapping
+saveRSTBX(SC1_WD20,"Data_out/models/SC1_WD20",format="raster",overwrite=T)
+SC1_WD20$classMapping
+
+writeRaster(SC1_WD20$map,"Data_out/class_tif/SC1_WD20.tif")
 
 pWD<-c("red","lightblue")
 
-plot(SC1_WD30$map, colNA=1,col=pWD,main="WetVSDry, 30% cut")
+plot(SC1_WD20$map, colNA=1,col=pWD,main="WetVSDry, 20% cut")
 
+
+
+set.seed(11)
+beginCluster()
+SC1_WB30<-superClass(img=sat0_WD,model="rf",trainData=GT_c_l0_t_WB,responseCol="WB.y",valData=GT_c_l0_v_WB,polygonBasedCV=T,predict=T,
+                     predType="raw",filename=NULL)
+endCluster()
+beep(3)
+saveRSTBX(SC1_WB30,"Data_out/models/SC1_WB30",format="raster",overwrite=T)
+SC1_WB30$classMapping
+
+pWD<-c("red","lightblue")
+
+plot(SC1_WB30$map, colNA=1,col=pWD,main="WetVSDry, 20% cut")
 
 
 #WBmap<-SC1_WB$map

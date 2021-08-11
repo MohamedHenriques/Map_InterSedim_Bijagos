@@ -57,3 +57,6 @@ mask
 models
 class_tif
 DEM
+img_test_RGB.tif
+m3_fg.csv
+sat_bol_calibrated

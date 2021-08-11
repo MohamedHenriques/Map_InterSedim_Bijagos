@@ -18,14 +18,6 @@ if(length(npacks)) install.packages(npacks)
 #install_github("vqv/ggbiplot")
 lapply(packs,require,character.only=T)
 
-## Load sat img
-
-sat<-stack("Data_out/Stack/Final_stack1.grd") ##created in script GraVSSat_Preliminary
-names(sat)
-
-#names(sat)<-c("B02_20200204","B03_20200204","B04_20200204","B05_20200204","B06_20200204","B07_20200204","B08_20200204",
-              #"B08A_20200204","B11_20200204","B12_20200204","S1_20200128_VH","S1_20200128_VV","Final_DEM_nodelay","NDWI","mNDWI","NDMI",
-              #"NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
 
 ##Load GT polygons (without Adonga)
 GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701.shp") #DB creates in script Granulometry_test.R
@@ -34,6 +26,15 @@ df<-data.table(GT@data)
 str(df)
 df[,unique(site)]
 df[,unique(Island)]
+
+GT<-readOGR("Data_out/Polygons/Poly_GT_Gra_ended_20210701_nosedID.shp") #DB creates in script Granulometry_test.R
+#plot(GT)
+df<-data.table(GT@data)
+str(df)
+df[,unique(site)]
+df[,unique(Island)]
+
+
 
 ###Adonga
 GT_adonga1<-readOGR("C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Data/Data_groundtruthing/Adonga/Poligonos_GT/Poligonos_GT_total/pols_Adonga_OK.shp")
@@ -50,18 +51,19 @@ str(dfa_f)
 df_adonga<-dfa_f[,.(name,Day,Radius,Class_1,Class_2,Class_3,c_water,c_macrophyte,c_shells,c_rocks,c_channels,c_uca,uca_density,greeness.y,mangrove.y,sed_Id,obs.y,obs2,island,finos)]
 str(df_adonga)
 names(df_adonga)[1]<-"Point"
-names(df_adonga)[c(7:15,17:19)]<-names(df)[7:18]
+names(df_adonga)[c(7:15,17:19)]<-names(df)[c(7:15,17:19)]
 df_adonga[,c(names(df)[19:35]):=NA]
 df_adonga[,Island:="Adonga"]
 df_adonga[,site:=Island]
 #df_adonga[,c("mud","X0"):=finos] ##we decided not to use the data from belo MSc thesis
 df_adonga[,Sed_ID:=sed_Id]
-df_adonga1<-df_adonga[,!c("finos","sed_Id")]
+df_adonga1<-df_adonga[,!c("finos","Sed_ID")]
 str(df_adonga1)
 names(df)==names(df_adonga1)
 
 df_adonga1[,table(Clss_22)]
 df_adonga1[,Clss_22:=factor(Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))]
+names(df)==names(df_adonga1)
 
 ### Add to the database data from granulometry made in MARE for Adonga samples
 Gra_Final<-fread("Data_out/db/Gra_Final_20210709.csv") ##created in script Granulometry_test.R
@@ -69,12 +71,18 @@ Gra_Final[,Sed_ID1:=as.character(Sed_ID)]
 str(Gra_Final)
 Gra_Final1<-Gra_Final[,c(2:6,7:14,15:18)][]
 names(Gra_Final1)
+Gra_Final1[,sed_Id]==Gra_Final1[,Sed_ID1]
+Gra_Final1[,sed_Id:=NULL]
+names(Gra_Final1)
 
-df_adonga2<-merge(df_adonga1,Gra_Final1,by.x="Sed_ID",by.y="Sed_ID1",all.x=T)
+df_adonga2<-merge(df_adonga1,Gra_Final1,by.x="sed_Id",by.y="Sed_ID1",all.x=T)
 str(df_adonga2)
-df_adonga3<-df_adonga2[,!(21:34)]
-names(df_adonga3)[c(22:26,28:34,36:37)]<-names(df_adonga2)[21:34]
-names(df_adonga3)[c(29,33:34)]<-c("Texture","Sand","mud")
+names(df_adonga2)
+df_adonga3<-df_adonga2[,!(22:35)]
+names(df_adonga3)[c(23:27,29:35,36:37)]<-names(df_adonga2)[22:35]
+names(df_adonga3)[c(30,34:35)]<-c("Texture","Sand","mud")
+df_adonga3[,sed_Id]==df_adonga3[,Point] ## Are not equal because sed id only has names for sediment samples, point are names of polygons
+
 
 names(GT_adonga1)
 
@@ -83,7 +91,7 @@ GT_adonga_f<-merge(GT_adonga1,df_adonga3, by.x="name",by.y="Point", all.x=T)
 plot(GT_adonga_f)
 str(GT_adonga_f@data)
 cols<-c("name",names(df_adonga3)[-2])
-cols1<-cols[-27]
+cols1<-cols[-28]
 cols1[17]<-"obs.y"
 GT_AD<-GT_adonga_f[,(names(GT_adonga_f) %in% cols1)]
 names(GT_AD@data)[1]<-"Point"
@@ -321,12 +329,37 @@ DF[,unique(bsed1)]
 DF[,uca:=ifelse(cover_over=="uca","uca","other")]
 DF[,unique(uca)]
 
+## Sediment class as used by Belo in MSc Thesis
+DF[,finos_class:=ifelse(mud<10,"sandy_010",ifelse(mud>=10&mud<=100,"mixed_1075",NA))]
+DF[!(is.na(mud)),table(finos_class)]
+DF[,Final_finos_class:=paste(cover_overA,finos_class,sep="_")][cover_overA=="macroalgae"|cover_overA=="rock"|cover_overA=="shell",Final_finos_class:=cover_overA]
+DF[,.(table(Final_finos_class))]
+
+###Median
+DF[,summary(D50.um.)]
+DF[,Median:=ifelse(D50.um.<=125,"less_125","more_125")]
+DF[,table(Median)]
+DF[,Final_median:=paste(cover_overA,Median,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_median:=cvr_vrA]
+DF[,.(table(Final_median))]
+
+###Median1
+DF[,summary(D50_um_)]
+DF[,Median1:=ifelse(D50_um_<150,"less_150","more_150")]
+DF[,table(Median1)]
+DF[,Final_median1:=paste(cvr_vrA,Median1,sep="_")][cvr_vrA=="macroalgae"|cvr_vrA=="rock"|cvr_vrA=="shell",Final_median1:=cvr_vrA]
+DF[,.(table(Final_median1))]
+
+
+
 ###Introduce new columns on polygons
-DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,cover_overA,cover_sed_field,cover_sed_grad,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,Point)]
+DF1<-DF[,.(Class_11,Class_22,Class_33,cover_over,cover_over1,cover_overA,cover_sed_field,cover_sed_grad,WB,WD,rocks, macro,shells,sediment0,bsed,bsed1,uca,finos_class,Final_finos_class,Point)]
 
 
-GT_c1<-merge(GT_c,DF1,by="Point")
+GT_c1<-merge(GT_c,DF1,by="Point") # For database with sed ID
 #plot(GT_c1)
 #str(GT_c1@data)
 
-writeOGR(GT_c1,"Data_out/Polygons",layer="GT_c1",driver = "ESRI Shapefile",overwrite_layer = T)
+#GT_c2<-merge(GT_c,DF1,by="Point") ## For data base without sed id
+
+writeOGR(GT_c1,"Data_out/Polygons",layer="GT_c1A",driver = "ESRI Shapefile",overwrite_layer = T)
+#writeOGR(GT_c2,"Data_out/Polygons",layer="GT_c2",driver = "ESRI Shapefile",overwrite_layer = T)

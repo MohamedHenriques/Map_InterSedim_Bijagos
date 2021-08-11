@@ -1,4 +1,4 @@
-"Sed_ID";"2000";"500";"250";"63";"0";"sedID";"Sediment";"Texture";"D50(um)";"Mean.fw.phi";"Mean.fw.um";"Sand";"mud";"sed_Id";"Sed_class";"Sed_class1"
+"Sed_ID";"2000";"500";"250";"63";"0";"sedID";"Sediment";"Texture";"D50(um)";"Mean.fw.phi";"Mean.fw.um";"Sand";"mud";"sed_Id";"Sed_class1";"Sed_class"
 61;0;1.24;15.23;77.03;6.51;"X61";"Fine Sand,Poorly Sorted,Fine Skewed,Leptokurtic";"Sand";137.196;2.859;64.99;93.494;6.506;"61";"Fine Sand";"Fine Sand"
 62;0;0.85;22.47;71.4;5.27;"X62";"Fine Sand,Moderately Sorted,Symmetrical,Mesokurtic";"Sand";149.39;2.702;78.636;94.727;5.273;"62";"Fine Sand";"Fine Sand"
 65;0;1.35;25.72;70.3;2.62;"X65";"Fine Sand,Moderately Sorted,Symmetrical,Platykurtic";"Sand";159.495;2.609;90.888;97.376;2.624;"65";"Fine Sand";"Fine Sand"
@@ -453,7 +453,7 @@
 3809;0;0.12;3.31;93.89;2.69;"X3809";"Fine Sand,Moderately Well Sorted,Symmetrical,Platykurtic";"Sand";126.181;2.986;57.254;97.314;2.686;"3809";"Fine Sand";"Fine Sand"
 3810;0;0.33;15.22;81.81;2.63;"X3810";"Fine Sand,Moderately Sorted,Symmetrical,Platykurtic";"Sand";139.927;2.837;69.383;97.365;2.635;"3810";"Fine Sand";"Fine Sand"
 3811;0;3.41;66.05;30.32;0.22;"X3811";"Medium Sand,Moderately Sorted,Very Fine Skewed,Mesokurtic";"Sand";306.646;1.95;300.65;99.78;0.22;"3811";"Medium Sand";"Medium Sand"
-3814;0.06;1.39;15.7;7.82;75.03;"X3814";"Coarse Silt,Very Poorly Sorted,Coarse Skewed,Platykurtic";"Slightly Gravelly Sandy Mud";15.688;5.546;0.239;24.903;75.034;"3814";"Coarse Silt";NA
+3814;0.06;1.39;15.7;7.82;75.03;"X3814";"Coarse Silt,Very Poorly Sorted,Coarse Skewed,Platykurtic";"Slightly Gravelly Sandy Mud";15.688;5.546;0.239;24.903;75.034;"3814";NA;"Coarse Silt"
 3817;0;1.52;63.9;34.29;0.3;"X3817";"Fine Sand,Moderately Sorted,Very Fine Skewed,Mesokurtic";"Sand";295.512;2.021;263.643;99.704;0.296;"3817";"Fine Sand";"Fine Sand"
 3821;0;0.69;2.78;95.7;0.84;"X3821";"Fine Sand,Moderately Well Sorted,Symmetrical,Platykurtic";"Sand";127.901;2.967;59.464;99.165;0.835;"3821";"Fine Sand";"Fine Sand"
 3828;0.08;0.12;0.24;98.32;1.25;"X3828";"Very Fine Sand,Moderately Well Sorted,Symmetrical,Platykurtic";"Slightly Gravelly Sand";124.785;3.002;56.63;98.676;1.249;"3828";"Very Fine Sand";"Very Fine Sand"

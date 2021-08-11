@@ -58,5 +58,6 @@ unique(m1[is.na(m1$B02_20200204),"Point"])
 
 #write.table(m1,"Data_out/db/DF_extract_20210429.csv",row.names=F,sep=";")
 #write.table(m1,"Data_out/db/DF_extract_20210622.csv",row.names=F,sep=";")
-write.table(m1,"Data_out/db/DF_extract_20210710.csv",row.names=F,sep=";")
+#write.table(m1,"Data_out/db/DF_extract_20210710.csv",row.names=F,sep=";")
+write.table(m1,"Data_out/db/DF_extract_20210722.csv",row.names=F,sep=";")
 

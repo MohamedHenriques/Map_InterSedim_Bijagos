@@ -32,7 +32,7 @@ bat2<-raster("Data_out/DEM/Final_DEM/Final_DEM_nodelay.tif")
 
 
 ### Load intertidal mask (created in script DEM_based_intertidalmask_creation)
-intmask<-raster("Data_out/mask/final_mask_20210710.tif")
+intmask<-raster("Data_out/mask/final_mask_20210721.tif")
 plot(intmask,colNA=1)
 
 ## Mask bathymetry
@@ -60,7 +60,8 @@ names(S1_c)<-c("S1_20200128_VH","S1_20200128_VV")
 ##Load S2 images 20200204
 path_bub<-"C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bubaque/im_20200204/2A"
 files_bub<-list.files(path=path_bub,pattern=".tif",full.names = T)
-S2_20200204_bub<-stack(files_bub)
+S2_20200204_bub<-stack(files_bub[-9])
+#plot(S2_20200204_bub[[1]])
 #S2_20200204<-raster(paste(path,files[1],sep="/"))
 
 #for(i in 2:length(files)) {
@@ -70,7 +71,7 @@ S2_20200204_bub<-stack(files_bub)
 names(S2_20200204_bub)
 #plot(S2_20200204_bub)
 
-path_bol<-"C:/Doutoramento1/Capitulos/Mapping_intertidal_sediments/Satellite_images/Sentinel2/Resampled/Bolama/im_20200204/2A"
+path_bol<-"Data_out/sat_bol_calibrated" ## created in script calibration_satimg_DEM.tif
 files_bol<-list.files(path=path_bol,pattern=".tif",full.names = T)
 S2_20200204_bol<-stack(files_bol)
 names(S2_20200204_bol)
@@ -91,19 +92,26 @@ plot(S2_20200204_bol_t)
 
 ### unite the 2 sentinel2 scenes
 S2_20200204_tot<-merge(S2_20200204_bub_t,S2_20200204_bol_t,overlap=T)
-plot(S2_20200204_tot)
+#plot(S2_20200204_tot[[1]])
 
 names(S2_20200204_bub_t)
 names(S2_20200204_bol_t)
 
 names(S2_20200204_tot)<-names(S2_20200204_bub_t)
 
-beginCluster(6)
+ggRGB(S2_20200204_tot,3,2,1,stretch = "lin")
+
+beginCluster()
 S2_20200204_tot_c<-crop(S2_20200204_tot,intmask)
 endCluster()
-plot(S2_20200204_tot_c)
-writeRaster(S2_20200204_tot_c,"Data_out/SatImg_StudyArea/S2_20200204_tot_c.tif", format="GTiff",overwrite=F)
+ggRGB(S2_20200204_tot_c[[1:3]],3,2,1,stretch = "lin")
+
+#writeRaster(S2_20200204_tot_c,"Data_out/SatImg_StudyArea/S2_20200204_tot_c.tif", format="GTiff",overwrite=F)
 writeRaster(S2_20200204_tot_c,"Data_out/SatImg_StudyArea/S2_20200204_tot_c.grd", format="raster",overwrite=F)
+
+S2_20200204_tot_c<-stack("Data_out/SatImg_StudyArea/S2_20200204_tot_c.grd")
+names(S2_20200204_tot_c)
+
 
 ## Check extent of images to prepare to stack all together
 
@@ -146,8 +154,8 @@ VH_VV<-(all_m$S1_20200128_VH)/(all_m$S1_20200128_VV)
 MSAVI2<-(2*all_m$B08_20200204+1-sqrt((2*all_m$B08_20200204+1)^2-8*(all_m$B08_20200204-all_m$B04_20200204)))/2
 intensity<-1/30.5*(all_m$B02_20200204+all_m$B03_20200204+all_m$B04_20200204)
 #visible_multi<-all_m$B02_20200204*all_m$B03_20200204*all_m$B04_20200204
-rededge_multi<-all_m$B05_20200204*all_m$B06_20200204*all_m$B07_20200204
-iv_multi<-all_m$B08_20200204*all_m$B08A_20200204
+rededge_mean<-(all_m$B05_20200204+all_m$B06_20200204+all_m$B07_20200204)/3
+iv_div<-all_m$B08_20200204/all_m$B08A_20200204
 beep(3)
 
 #plot(NDWI)
@@ -161,9 +169,8 @@ beep(3)
 
 
 
-sat1<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,intensity,rededge_multi,iv_multi)
-sat<-sat1[[-9]] ##remove band 9, cirrus cloud, not relevant
-names(sat)[14:24]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_multi","iv_multi")
+sat<-stack(all_m,NDWI,mNDWI,NDMI,NDMI1,NDVI,RVI,VH_VV,MSAVI2,intensity,rededge_mean,iv_div)
+names(sat)[14:24]<-c("NDWI","mNDWI","NDMI","NDMI1","NDVI","RVI","VH_VV","MSAVI2","intensity","rededge_mean","iv_div")
 
 
 

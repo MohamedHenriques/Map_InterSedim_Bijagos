@@ -21,17 +21,17 @@ if(length(npacks)) install.packages(npacks)
 lapply(packs,require,character.only=T)
 
 ##load extract data
-m1<-fread("Data_out/db/DF_extract_20210429.csv") # created in script Sat_image_stack.R
+m1<-fread("Data_out/db/DF_extract_20210710.csv") # created in script Sat_image_stack.R
 str(m1)
 m1[,c_uca:=as.numeric(c_uca)]
 
 ## create subset of columns
-m2<-m1[,c(2:28,34:39,46,49:52,57:61,63,66,70:77,81)]
+m2<-m1[,c(2:25,32:37,43,45,53:57,59,66,68,70,77)]
 str(m2)
 
-table(is.na(m2))
+#table(is.na(m2))
 
-m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
+#m2[,MSAVI2:=(2*B08_20200204+1-sqrt((2*B08_20200204+1)^2-8*(B08_20200204-B04_20200204)))/2]
 
 m2[(WD=="dry"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
 m2[(WD=="wet"&cvr_vrA=="bare_sediment"),table(cvr_sd_g)]
@@ -40,6 +40,10 @@ m2[(WD=="wet"&cvr_vrA=="uca"),table(cvr_sd_g)]
 m2[,table(uca)]
 
 order(m2[uca=="uca",unique(mud)])
+
+m2[,unique(cvr_vrA)]
+m2[cvr_vrA=="shell_uca",cvr_vrA:="uca"]
+m2[,unique(cvr_vrA)]
 
 ## Sediment classes as defined by EU (2019)
 m2[,Grain_EU:=ifelse(mud<10,"sand_010",ifelse(mud>=10&mud<25,"muddy_sand_1025",ifelse(mud>=25&mud<60,"mixed_2560",ifelse(mud>=60&mud<=100,"muddy_60100",NA))))][,Final_grain_EU:=ifelse(cvr_vrA=="bare_sediment"|cvr_vrA=="uca",paste(cvr_vrA,Grain_EU,sep="_"),ifelse(cvr_vrA=="macroalgae","macroalgae",ifelse(cvr_vrA=="rock","rock",ifelse(cvr_vrA=="shell","shell",NA))))]
@@ -95,8 +99,32 @@ m2[,finos_grad:=ifelse(finos_class=="sandy_010",paste(finos_class,Sd_cls1,sep="_
 m2[,.(table(finos_grad))]
 m2[,Final_finos_grad:=ifelse(Final_finos_class=="bare_sediment_sandy_010"|Final_finos_class=="uca_sandy_010",paste(Final_finos_class,Sd_cls1,sep="_"),Final_finos_class)]
 m2[,.(table(Final_finos_grad))]
+m2[Final_finos_grad=="uca_sandy_010_Medium Sand",cvr_vrA:="bare_sediment"][Final_finos_grad=="uca_sandy_010_Medium Sand",Final_finos_grad:="bare_sediment_sandy_010_Medium Sand"]
+m2[,.(table(Final_finos_grad))]
+m2[,.(table(Final_finos_class))]
 
-write.table(m2,"Data_out/db/DF_extract_20210614.csv",row.names=F,sep=";")
+#write.table(m2,"Data_out/db/DF_extract_20210614.csv",row.names=F,sep=";")
+
+
+###############################################################################################
+###############################################################################################
+m2_p<-m2[!(is.na(cvr_vrA)|Final_finos_grad=="bare_sediment_NA"|Final_finos_grad=="shell_uca_NA"|Final_finos_grad=="shell_uca_sandy_010"|Final_finos_grad=="uca_NA"),c(1:24,44,47)]
+
+m2_p_m<-melt(m2_p,id.vars=c(25:26))
+
+
+ggplot(m2_p_m,aes(x=variable,y=value,col=Final_finos_grad))+
+  stat_summary(fun.y = mean,fun.ymin = function(x) mean(x) - sd(x),fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange",position=position_jitter(width=.5)) +
+  stat_summary(fun.y = mean,geom = "line")+
+  theme(axis.text.x = element_text(size=11, angle=45))
+  
+  
+
+
+
+
+
 
 ##################################################################################################
 #####################################################################################################
@@ -104,22 +132,23 @@ m2_ad<-m2[Island=="Adonga"]
 m2_rest<-m2[!Island=="Adonga"]
 
 
-ggplot(m2_rest[!(is.na(mud)|finos_grad=="sandy_010_NA")],aes(x=mud, fill=finos_grad))+
-  geom_histogram(col="white",binwidth=.25)+
+ggplot(m2[!(is.na(mud))],aes(x=mud, fill=finos_class))+
+  geom_histogram(col="white",binwidth = 1)+
   #stat_summary()+
   theme_bw()+
   facet_grid(~uca)+
   scale_x_continuous(breaks=seq(0,100,10))+
   labs(title="exposed sediments")
 
-ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=Mn_fw_p,fill=Sd_cls1))+
-  geom_histogram(binwidth=.02,col="white")+
+ggplot(m2[!(is.na(mud)|is.na(Sd_cls1))],aes(x=Mn_fw_m,fill=Sd_cls1))+
+  geom_histogram(binwidth=5,col="white")+
   #stat_summary()+
+  geom_vline(xintercept = 125, linetype="dotted",color = "blue", size=1.5)+
   theme_bw()+
   #geom_vline(xintercept=median(m2[!(is.na(mud)|is.na(Sd_cls1)),Mn_fw_p]),col="blue",lwd=1.2)+
   #geom_vline(xintercept=mean(m2[!(is.na(mud)|is.na(Sd_cls1)),Mn_fw_p]),col="red",lwd=1.2)+
   facet_grid(~uca)+
-  #scale_x_continuous(breaks=seq(100,400,25))+
+  #scale_x_continuous(breaks=seq(0,500,25))+
   labs(title="exposed sediments, mean grain size distribution (phi)")
 
 
@@ -247,16 +276,19 @@ ggplot(melt2[Class_22=="muddy_sand"|Class_22=="sand"|Class_22=="sandy_mud"],aes(
 #######################################################################################
 ###Create database with balanced number of points for each habitat class
 ##Database for cover over
+
+m2[,.(table(covr_vrA6))]
+
 set.seed(1)
-n<-m2[,.(table(cvr_vrA))]
+n<-m2[,.(table(covr_vrA6))]
 str(n)
-rndid<-with(m2, ave(B02_20200204,cvr_vrA,FUN=function(x) {sample.int(length(x))}))
+rndid<-with(m2, ave(B02_20200204,covr_vrA6,FUN=function(x) {sample.int(length(x))}))
 m3_cvrA<-m2[rndid<=min(n$N),]
-m3_cvrA[,table(cvr_vrA)]
+m3_cvrA[,table(covr_vrA6)]
 
 
 ##Database for uca vs bare sediment
-m2_ucabs<-m2[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"]
+m2_ucabs<-m2[covr_vrA6=="sediments"]
 
 set.seed(2)
 n<-m2_ucabs[,.(table(uca))]
@@ -267,29 +299,45 @@ m3_ucabs[,table(uca)]
 
 
 ##Database for sediment grain types uca
-m2[,finos_class:=ifelse(mud<10,"sandy","muddy")]
+#m2[,finos_class:=ifelse(mud<10,"sandy","muddy")]
 m2[,table(finos_class)]
+m2[,table(finos_grad)]
 m2_uca<-m2[cvr_vrA=="uca"]
+m2_uca[,table(finos_class)]
+m2_uca[,table(finos_grad)]
 
 set.seed(3)
 n<-m2_uca[,.(table(finos_class))]
 str(n)
+n1<-m2_uca[,.(table(finos_grad))]
+str(n1)
 rndid<-with(m2_uca, ave(B02_20200204,finos_class,FUN=function(x) {sample.int(length(x))}))
-m3_uca<-m2_uca[rndid<=min(n$N),]
-m3_uca[,table(finos_class)]
-
+rndid1<-with(m2_uca, ave(B02_20200204,finos_grad,FUN=function(x) {sample.int(length(x))}))
+m3_uca_f<-m2_uca[rndid<=min(n$N),]
+m3_uca_f[,table(finos_class)]
+m3_uca_g<-m2_uca[rndid1<=min(n1$N),]
+m3_uca_g[,table(finos_grad)]
 
 ##Database for sediment grain types bare sediment
 #m2[,finos_class:=ifelse(mud<10,"sandy","muddy")]
 m2[,table(finos_class)]
+m2[,table(finos_grad)]
 m2_bs<-m2[cvr_vrA=="bare_sediment"]
+m2_bs[,table(finos_class)]
+m2_bs[,table(finos_grad)]
+m2_bs1<-m2_bs[!(finos_grad=="sandy_010_Medium Sand")]
 
 set.seed(4)
 n<-m2_bs[,.(table(finos_class))]
 str(n)
+n1<-m2_bs1[,.(table(finos_grad))]
+str(n1)
 rndid<-with(m2_bs, ave(B02_20200204,finos_class,FUN=function(x) {sample.int(length(x))}))
-m3_bs<-m2_bs[rndid<=min(n$N),]
-m3_bs[,table(finos_class)]
+rndid1<-with(m2_bs1, ave(B02_20200204,finos_grad,FUN=function(x) {sample.int(length(x))}))
+m3_bs_f<-m2_bs[rndid<=min(n$N),]
+m3_bs_f[,table(finos_class)]
+m3_bs_g<-m2_bs1[rndid1<=min(n1$N),]
+m3_bs_g[,table(finos_grad)]
 
 
 
@@ -439,28 +487,25 @@ corrplot(resr_wet,type="upper",order="original",p.mat=resp,sig.level=0.05,insig=
 #########################################################################################
 #########################################################################################
 ##database for general PCA
-m2_1<-na.omit(m2[,c(1:8,10:26,55,45:46,48,49,54,56:60,59,61:63,65:71,73)])
-str(m2_1)
+m2_1<-na.omit(m2[,c(44,46,1:22,25:28,30,33:34,37)])
 
 ## subset database for a PCA focused on step1 
-m4_step1<-na.omit(m3_cvrA[,c(45,49,1:26,54,58)])
+m4_step1<-na.omit(m3_cvrA[,c(47,1:22,25:28,30)])
 str(m4_step1)
 
-m4_step1[,table(cvr_vrA)]
-m4_step1[,table(WD)]
+m4_step1[,table(covr_vrA6)]
 
-m4_step1_tot<-na.omit(m2[,c(45,49,1:26,54,58)])
+m4_step1_tot<-na.omit(m2[,c(39,1:22,25:28,30,33:34,37)])
 str(m4_step1_tot)
 
 m4_step1_tot[,table(cvr_vrA)]
-m4_step1_tot[,table(WD)]
 
 ##run PCA analysis
-general_pca<-prcomp(m2_1[,!c(27:48)],center=T,scale=T)
+general_pca<-prcomp(m2_1[,!c(1:2)],center=T,scale=T)
 summary(general_pca)
 
 
-step1_pca<-prcomp(m4_step1[,!c("WD","cvr_vrA")],center=T,scale=T)
+step1_pca<-prcomp(m4_step1[,!c("covr_vrA6")],center=T,scale=T)
 summary(step1_pca)
 
 ##run PCA analysis
@@ -486,11 +531,17 @@ sat_stp1$pc1<-stp1_p[,1]
 plot(stp1_p[,1], col = cm.colors(15), axes = FALSE)
 
 
+###Step 1 PCA
+
+ggbiplot(step1_pca,choices=1:2,ellipse=T,groups=m4_step1$covr_vrA6,varname.size=5,alpha=.4,var.axes = T)+
+  theme_bw()+
+  labs(colour="Step 1 PCA")
 
 
 #### STep 2 PCA 
-m4_step2<-na.omit(m3_ucabs[,c(53,49,1:26,54,58)])
+m4_step2<-na.omit(m3_ucabs[,c(42,1:22,25,30)])
 str(m4_step2)
+m4_step2[,.(table(uca))]
 
 m4_step2_1<-na.omit(m2[,c(53,49,1:26,54,58)])
 str(m4_step2_1)
@@ -499,7 +550,7 @@ m4_step2_1[,table(uca)]
 m4_step2_1[,table(WD)]
 
 ##run PCA analysis
-step2_pca<-prcomp(m4_step2[,!c("WD","uca")],center=T,scale=T)
+step2_pca<-prcomp(m4_step2[,!c("uca")],center=T,scale=T)
 summary(step2_pca)
 
 ##run PCA analysis
@@ -508,24 +559,24 @@ summary(step2_pca1)
 
 ##plot PCA
 
-ggbiplot(step2_pca1,choices=1:2,ellipse=T,groups=m4_step2_1$uca,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(step2_pca,choices=1:2,ellipse=T,groups=m4_step2$uca,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="step 2 uca vs bare sediment")
 
 
 
 #### STep 3 UCA PCA 
-m4_step3uca<-na.omit(m3_uca[,c(60,49,1:26,54,58)])
+m4_step3uca<-na.omit(m3_uca_g[,c(46,1:22,33:35,37)])
 str(m4_step3uca)
 
 m4_step3uca_1<-na.omit(m2[uca=="uca",c(60,49,1:26,54,58)])
 str(m4_step3uca_1)
 
-m4_step3uca[,table(finos_class)]
+m4_step3uca[,table(Final_finos_grad)]
 m4_step3uca_1[,table(finos_class)]
 
 ##run PCA analysis
-step3uca_pca<-prcomp(m4_step3uca[,!c("WD","finos_class")],center=T,scale=T)
+step3uca_pca<-prcomp(m4_step3uca[,!c("Final_finos_grad")],center=T,scale=T)
 summary(step3uca_pca)
 
 ##run PCA analysis
@@ -534,7 +585,7 @@ summary(step3uca_pca1)
 
 ##plot PCA
 
-ggbiplot(step3uca_pca1,choices=1:2,ellipse=T,groups=m4_step3uca_1$finos_class,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(step3uca_pca,choices=1:2,ellipse=T,groups=m4_step3uca$Final_finos_grad,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="step 3 uca")
 
@@ -543,7 +594,7 @@ ggbiplot(step3uca_pca1,choices=1:2,ellipse=T,groups=m4_step3uca_1$finos_class,va
 
 
 #### STep 3 BS PCA 
-m4_step3bs<-na.omit(m3_bs[,c(60,49,1:26,54,58)])
+m4_step3bs<-na.omit(m3_bs_g[,c(46,1:22,33:35,37)])
 str(m4_step3bs)
 
 m4_step3bs_1<-na.omit(m2[uca=="other",c(60,49,1:26,54,58)])
@@ -553,7 +604,7 @@ m4_step3bs[,table(finos_class)]
 m4_step3bs_1[,table(finos_class)]
 
 ##run PCA analysis
-step3bs_pca<-prcomp(m4_step3bs[,!c("WD","finos_class")],center=T,scale=T)
+step3bs_pca<-prcomp(m4_step3bs[,!c("Final_finos_grad")],center=T,scale=T)
 summary(step3bs_pca)
 
 ##run PCA analysis
@@ -562,7 +613,7 @@ summary(step3bs_pca1)
 
 ##plot PCA
 
-ggbiplot(step3bs_pca,choices=1:2,ellipse=T,groups=m4_step3bs$finos_class,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(step3bs_pca,choices=1:2,ellipse=T,groups=m4_step3bs$Final_finos_grad,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
   labs(colour="step 3 bare sediment")
 
@@ -580,15 +631,18 @@ rndid<-with(m4_1, ave(NDWI,WD,FUN=function(x) {sample.int(length(x))}))
 m4_WD<-m4_1[rndid<=min(n$N)] ##Chose 50 because one of the classes has too few observations
 m4_WD[,table(WD)]
 
+m2_WD<-na.omit(m2[,!c(25:40,42)])
+str(m2_WD)
+
 ##run PCA analysis
-m4_pca<-prcomp(m4_WD[,!c("WD","cvr_vrA","cvr_sd_f","cvr_sd_g","uca","D50_um_","Mn_fw_m","Mn_fw_p","intensity")],center=T,scale=T)
-summary(m4_pca)
+m2_pca<-prcomp(m2_WD[,!c("WD")],center=T,scale=T)
+summary(m2_pca)
 
 ##plot PCA
 
-ggbiplot(m4_pca,choices=1:2,ellipse=T,groups=m4_WD$WD,varname.size=5,alpha=.4,var.axes = T)+
+ggbiplot(m2_pca,choices=1:2,ellipse=T,groups=m2_WD$WD,varname.size=5,alpha=.4,var.axes = T)+
   theme_bw()+
-  labs(colour="Wet VS Dry (30% cut)")
+  labs(colour="Wet VS Dry (20% cut)")
 
 pca3d(m4_pca, group=factor(m4_WD$uca),components=1:3,show.group.labels = T,legend="right",biplot=F,new=T)
 #snapshotPCA3d(file="first_plot.png")

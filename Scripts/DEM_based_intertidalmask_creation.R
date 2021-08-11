@@ -59,12 +59,14 @@ plot(bat2)
 
 writeRaster(bat2,"Data_out/DEM/Final_DEM/Final_DEM_nodelay.tif",format="GTiff",overwrite=F)
 
+bat2<-raster("Data_out/DEM/Final_DEM/Final_DEM_nodelay.tif")
+
 ##Load S1 image
 s1_20200128<-brick("D:/Work/FCUL/Doutoramento/Capitulos/Mapping_intertidal_sediments/SNAP/S1/20200128_1917/S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.tif")
 plot(s1_20200128)
 
 ### Remember to repeat S1 processing in SNAP including the all mask this time
-S1_c<-crop(s1_20200128,bat1)
+S1_c<-crop(s1_20200128,bat2)
 plot(S1_c)
 S1_VH<-S1_c$S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.1
 S1_VV<-S1_c$S1A_IW_GRDH_1SDV_20200128T191708_20200128T191733_031005_038FAD_B2A7_Orb_TNR_BN_Cal_Spk_TC_DEM05.2
@@ -92,7 +94,7 @@ S2_20200204<-stack(files)
 #}
 #)
 
-plot(S2_20200204)
+plot(S2_20200204[[1]])
 
 ###Calculate height of water at acquisition time for S2 sat image
 hHW<-3.5
@@ -106,7 +108,7 @@ hsat_S2
 
 ##### Filter out pixels in DEM to use in the mask based on the hight of sat images - using as reference the hight of S2 image
 plot(bat2)
-bat3<-bat2>1.55
+bat3<-bat2>1.65
 plot(bat3)
 
 bat3[bat3==0]<-NA
@@ -114,6 +116,7 @@ bat3[bat3==0]<-NA
 plot(bat3)
 
 ##Export final mask
-writeRaster(bat3,"Data_out/mask/final_mask_20210710.tif")
+#writeRaster(bat3,"Data_out/mask/final_mask_20210710.tif")
+writeRaster(bat3,"Data_out/mask/final_mask_20210721.tif")
 
 

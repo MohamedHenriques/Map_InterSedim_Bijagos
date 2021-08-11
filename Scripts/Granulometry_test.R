@@ -153,74 +153,101 @@ Gra_F[,table(Sediment)]
 #Gra_Final<-unique(Gra_F,by="sed_Id")
 #Gra_Final<-Gra_F[-which(duplicated(Gra_F$Point)),] ### delete duplicate entry (point 3556)
 
-Gra_F$Sed_class<-substr(Gra_F$Sediment,1,regexpr(",",Gra_Final$Sediment)-1)
+Gra_F$Sed_class<-substr(Gra_F$Sediment,1,regexpr(",",Gra_F$Sediment)-1)
 Gra_F$Sed_class1<-factor(Gra_F$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
 write.table(Gra_F,"Data_out/db/Gra_Final_20210709.csv",sep=";",row.names=F)
+Gra_F<-fread("Data_out/db/Gra_Final_20210709.csv")
+
+Gra_F$Sed_ID==Gra_F$sed_Id
+str(GT@data)
 
 GT_Final<-merge(GT,Gra_F,by="sed_Id",all.y=T)
-plot(GT_Final)
+#GT_Final1<-merge(GT,Gra_F,by.x="Point",by.y="sed_Id",all.y=T)
+plot(GT_Final1)
 table(is.na(GT_Final$Sed_ID))
+#table(is.na(GT_Final1$Sed_ID))
 
-##Check reeated sed IDs to see if merge went right
+##Check repeated sed IDs to see if merge went right
 BB<-data.frame(table(GT_Final$Sed_ID))
 BB[BB$Freq>1,]
+#BB1<-data.frame(table(GT_Final1$Sed_ID))
+#BB1[BB1$Freq>1,]
 
 GT_Final$Sed_class<-substr(GT_Final$Sediment,1,regexpr(",",GT_Final$Sediment)-1)
 GT_Final$Sed_class1<-factor(GT_Final$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
 GT_Final$Class_22<-factor(GT_Final$Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
 
+GT_Final1$Sed_class<-substr(GT_Final1$Sediment,1,regexpr(",",GT_Final1$Sediment)-1)
+GT_Final1$Sed_class1<-factor(GT_Final1$Sed_class,levels=c("Medium Sand","Fine Sand","Very Fine Sand","Very Coarse Silt","Medium Silt"))
+GT_Final1$Class_22<-factor(GT_Final1$Class_2,levels=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
+
 length(unique(GT$Point))
 length(unique(Gra_F$Sed_ID))
 length(unique(GT_Final$Point))
+length(unique(GT_Final1$Point))
 length(unique(GT_Final$sed_Id))
+length(unique(GT_Final1$sed_Id))
 length(unique(GT_Final$Sed_ID))
+length(unique(GT_Final1$Sed_ID))
 length(unique(GT_Final$sedID))
-
+length(unique(GT_Final1$sedID))
 length(unique(GT$sed_Id))
 length(unique(Gra_F$sed_Id))
 length(unique(GT_Final$sed_Id))
+length(unique(GT_Final1$sed_Id))
 
 ID_GT<-as.numeric(as.character(unique(GT$Point)))
 ID_Gra<-as.numeric(as.character(unique(Gra_Final$sed_Id)))
 ID_GT_Final<-as.numeric(as.character(unique(GT_Final$Point)))
 
+#ID_GT1<-as.numeric(as.character(unique(GT$Point)))
+#ID_Gra1<-as.numeric(as.character(unique(Gra_F$sed_Id)))
+#ID_GT_Final1<-as.numeric(as.character(unique(GT_Final1$Point)))
+
 ###These sed IDs are from Adonga, which is not in the used GT polygon shapefile. but theres 2 points (3075 and 3118) that I don't know what they are
 setdiff(ID_Gra,ID_GT_Final)
 setdiff(ID_Gra,ID_GT)
+#setdiff(ID_Gra1,ID_GT_Final1)
+#setdiff(ID_Gra1,ID_GT1)
 
 ###remove column names with redundant sed id
 View(GT_Final@data)
-GT_Final1<-GT_Final[,-c(1,27)]
-str(GT_Final1@data)
+GT_Final_1<-GT_Final[,-c(1,27)]
+str(GT_Final_1@data)
 
-plot(GT_Final1,col="red")
+#View(GT_Final1@data)
+#GT_Final1_1<-GT_Final1[,-c(27)]
+#str(GT_Final1_1@data)
+
+plot(GT_Final1_1,col="red")
 #writeOGR(GT_Final,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210113",driver="ESRI Shapefile",overwrite=F)
-#writeOGR(GT_Final1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210622",driver="ESRI Shapefile",overwrite=F)
-writeOGR(GT_Final1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210701",driver="ESRI Shapefile",overwrite=F)
+#writeOGR(GT_Final_1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210622",driver="ESRI Shapefile",overwrite=F)
+writeOGR(GT_Final_1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210701",driver="ESRI Shapefile",overwrite=F)
+writeOGR(GT_Final1_1,"Data_out/Polygons",layer="Poly_GT_Gra_ended_20210701_nosedID",driver="ESRI Shapefile",overwrite=T)
 
-ggplot(GT_Final1@data,aes(x=Class_22,y=Sed_class1))+
+ggplot(GT_Final_1@data,aes(x=Class_22,y=Sed_class1))+
   geom_point(size=3.5)+
   #stat_summary(size=1)+
   scale_x_discrete(limits=c("beach_sand","sand","muddy_sand","sandy_mud","mud"))
 
-ggplot(GT_Final1@data,aes(x=Class_3,y=mud,col=Class_22))+
+ggplot(GT_Final_1@data,aes(x=Class_3,y=mud,col=Class_22))+
   #geom_point(size=3.5)+
   stat_summary(size=0.7,na.rm=F, position = position_dodge(width = 0.2))+
   scale_x_discrete(limits=c(NA,"uca","macro_uca"))
 
-ggplot(GT_Final1@data,aes(x=Sed_class1,y=Mean.fw.phi,col=Class_22))+
+ggplot(GT_Final_1@data,aes(x=Sed_class1,y=Mean.fw.phi,col=Class_22))+
   #geom_point(size=2,position=position_jitter(width=.1, height=0))+
   stat_summary(size=1,position = position_dodge(width = 0.5))
 
-ggplot(GT_Final1@data,aes(x=Class_22,y=mud))+
+ggplot(GT_Final_1@data,aes(x=Class_22,y=mud))+
   geom_point(size=1)+
   stat_summary(size=1)
 
-ggplot(GT_Final1@data,aes(x=Class_22,y=Sed_class1,col=GT_Final1$`D50(um)`))+
+ggplot(GT_Final_1@data,aes(x=Class_22,y=Sed_class1,col=GT_Final1$`D50(um)`))+
   geom_point(size=2,position=position_dodge(width=.2))
   #stat_summary(size=1)
 
-ggplot(GT_Final1@data,aes(x=Sed_class1,y=mud))+
+ggplot(GT_Final_1@data,aes(x=Sed_class1,y=mud))+
   geom_point(size=1)+
   stat_summary(size=1)
 
