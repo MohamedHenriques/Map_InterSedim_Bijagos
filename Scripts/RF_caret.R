@@ -124,6 +124,11 @@ GT_c3$clust
 plot(GT_c3)
 writeOGR(GT_c3,"Data_out/Polygons",layer="GT_c3_1",driver = "ESRI Shapefile",overwrite_layer = F)
 
+##merge with extract database
+m3_fg_c<-merge(m3_fg,GT_c3,by="Point",all.x=T)
+str(m3_fg_c)
+
+m3_fg_c[,.(table())]
 
 # ## calculate distance between all points
 # d<geodist(x=m3[,34:35],paired=F,sequential=F,measure="geodesic")
@@ -215,7 +220,7 @@ mean(train_fg$pred_fg0 == train_fg$Final_finos_grad)
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
 importance(rf_fg0)
-varImpPlot(rf_fg0)
+varImpPlot(rf_fg0, main= "Variable impoortance for classification using both mud content and mean greain size")
 
 
 
@@ -459,6 +464,8 @@ plot(d1,colNA=1,col=rainbow(10))
 m3[,cvr_vrA6:=as.character(cvr_vrA)][cvr_vrA6=="bare_sediment",cvr_vrA6:="sediments"][cvr_vrA6=="uca",cvr_vrA6:="sediments"]
 m3[,.(table(cvr_vrA6))]
 
+m3_h<-na.omit(m3[,c(2:26,28,34)])
+
 #m3_2<-m3[!(Final_finos_grad=="bare_sediment_NA"|Final_finos_grad=="uca_NA")]
 #m3_2[,.(table(Final_finos_grad))]
 
@@ -466,30 +473,33 @@ m3[,.(table(cvr_vrA6))]
 #m3_fg<-na.omit(m3_2_1)
 #m3_fg[,.(table(Final_finos_grad))]
 
+##Dealing with spatial independence (but will create imbalance in the number of pixels between train and validation db)
 set.seed(1)
-trainIndex_h <- createDataPartition(m3$Final_finos_grad, p = .7, 
-                                     list = FALSE, 
-                                     times = 1)
-head(trainIndex_h)
+trainIndex_h<-sample.split(m3_h$cvr_vrA,SplitRatio=.70,group=m3_h$Point)
+table(m3_h$cvr_vrA,trainIndex_h)
+split(trainIndex_h,m3_h$Point)
 
-train_h<-m3[trainIndex_h]
-train_h[,.(table(Final_finos_grad))]
-train_h1<-na.omit(train_h[,c(1:24,34)])
-train_h1[,.(table(cvr_vrA6))]
 
-val_h<-m3[-trainIndex_h]
-val_h[,.(table(Final_finos_grad))]
-val_h1<-na.omit(val_h[,c(1:24,34)])
-val_h1[,.(table(cvr_vrA6))]
+# set.seed(1)
+# trainIndex_h <- createDataPartition(m3$Final_finos_grad, p = .7, 
+#                                      list = FALSE, 
+#                                      times = 1)
+# head(trainIndex_h)
+
+train_h<-m3_h[trainIndex_h]
+train_h[,.(table(cvr_vrA))]
+
+val_h<-m3_h[!trainIndex_h]
+val_h[,.(table(cvr_vrA))]
 
 
 ##Select variables
-names(train_h1)
-var_l00<-names(train_h1)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)]
-var_l000<-names(train_h1)[c(3,8,9,11:12,13,14,16,18,21,23)]
-var_l01<-names(train_h1)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
-var_l02<-names(train_h1)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
-var_l03<-names(train_h1)[c(1:3,4,11:12,18,19,21)]
+names(train_h)
+var_l00<-names(train_h)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)]
+var_l000<-names(train_h)[c(3,8,9,11:12,13,14,16,18,21,23)]
+var_l01<-names(train_h)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
+var_l02<-names(train_h)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
+var_l03<-names(train_h)[c(1:3,4,11:12,18,19,21)]
 
 ##############################################################################
 #################################################################################
@@ -497,40 +507,40 @@ var_l03<-names(train_h1)[c(1:3,4,11:12,18,19,21)]
 ## Using For loop to identify the right mtry for model
 a=c()
 #i=5
-for (i in 2:(length(var_l000)-3)) {
+for (i in 2:(length(var_l00)-3)) {
   set.seed(2)
   print(paste("mtry=",i,sep=" "))
-  rf_l000<-randomForest(train_h1[,..var_l000],y=train_h1[,as.factor(cvr_vrA6)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
-  pred_l000<-predict(rf_l000, newdata=val_h1[,..var_l000],type="class")
-  a[i-1] = mean(pred_l000 == val_h1$cvr_vrA6)
+  rf_l00<-randomForest(train_h[,..var_l00],y=train_h[,as.factor(cvr_vrA)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
+  pred_l00<-predict(rf_l00, newdata=val_h[,..var_l00],type="class")
+  a[i-1] = mean(pred_l00 == val_h$cvr_vrA)
 }
 a
-plot(2:(length(var_l000)-3),a)
-mtry_l000<-which(a==max(a))+1
+plot(2:(length(var_l00)-3),a)
+mtry_l00<-which(a==max(a))+1
 
 ##############################################################################################
 ################################################################################################
 
 ##Train and fit random forest with selected mtry
 set.seed(2)
-rf_l000<-randomForest(train_h1[,..var_l000],y=train_h1[,as.factor(cvr_vrA6)],ntree=1000,mtry=mtry_l000,replace=T,importance=T,localImp=F,do.trace=100)
+rf_l00<-randomForest(train_h[,..var_l00],y=train_h[,as.factor(cvr_vrA)],ntree=1000,mtry=mtry_l00,replace=T,importance=T,localImp=F,do.trace=100)
 
 ##Validate with validation data set and confusion matrix
-val_h1$pred_l000<-predict(rf_l000, newdata=val_h1[,..var_l000],type="class")
-mean(val_h1$pred_l000 == val_h1$cvr_vrA6)                    
-#cm_val_l000<-table(val_h1$pred_l000,val_h1$cvr_vrA6)
+val_h$pred_l00<-predict(rf_l00, newdata=val_h[,..var_l00],type="class")
+mean(val_h$pred_l00 == val_h$cvr_vrA)                    
+#cm_val_l00<-table(val_h$pred_l00,val_h$cvr_vrA)
 
-confusionMatrix(as.factor(val_h1$pred_l000),as.factor(val_h1$cvr_vrA6))
+confusionMatrix(as.factor(val_h$pred_l00),as.factor(val_h$cvr_vrA))
 
 ##Predict training data and check validation and confusion matrix
-train_h1$pred_l000<-predict(rf_l000, newdata=train_h1[,..var_l000],type="class")
-mean(train_h1$pred_l000 == train_h1$cvr_vrA6)
-#cm_train_l000<-table(train_h1[,pred_l000],train_h1[,cvr_vrA6])
+train_h$pred_l00<-predict(rf_l00, newdata=train_h[,..var_l00],type="class")
+mean(train_h$pred_l00 == train_h$cvr_vrA)
+#cm_train_l00<-table(train_h[,pred_l00],train_h[,cvr_vrA])
 
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
-importance(rf_l01)
-varImpPlot(rf_l01)
+importance(rf_l00)
+varImpPlot(rf_l00, main="Variable importance for classification without grain size measures")
 
 
 
@@ -538,10 +548,10 @@ varImpPlot(rf_l01)
 ### Predict for sat image and export tif
 ##PCA variable selection
 beginCluster()
-pred_img_l000 <- clusterR(sat[[var_l000]], raster::predict, args = list(model = rf_l000))
+pred_img_l00 <- clusterR(sat[[var_l00]], raster::predict, args = list(model = rf_l00))
 endCluster()
 beep(3)
-writeRaster(pred_img_l000,"Data_out/class_tif/pred_img_l0_sel00.tif",overwrite=T)
+writeRaster(pred_img_l00,"Data_out/class_tif/pred_img_l0_sel00.tif",overwrite=T)
 
 plot(pred_img_l000,colNA=1)
 
@@ -902,6 +912,9 @@ plot(d1,colNA=1,col=rainbow(10))
 
 writeRaster(hierarch,"Data_out/class_tif/hierarch_rf.tif",overwrite=F)
 
+
+
+
 ################################################################################
 #################################################################################
 ################ Finos #############################################
@@ -911,7 +924,7 @@ m3_1<-m3[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
 m3_1[,.(table(Final_finos_class))]
 data.frame(names(m3_1))
 
-m3_1_1<-m3_1[,c(1:24,25,31)]
+m3_1_1<-m3_1[,c(2:25,26,32)]
 m3_f<-na.omit(m3_1_1)
 m3_f[,.(table(Final_finos_class))]
 
@@ -958,7 +971,7 @@ split(trainIndex_f,m3_f$Point)
 # set.seed(1)
 # trainIndex_f1 <- createDataPartition(m3_f$Final_finos_class, p = .7,list = FALSE,times = 1,group=m3_f$Point)
 
-head(trainIndex_f)
+# head(trainIndex_f)
 
 train_f<-m3_f[trainIndex_f]
 train_f[,.(table(Final_finos_class))]
@@ -979,40 +992,40 @@ var_f3<-names(train_f)[c(1:3,4,11:12,18,19,21)]
 ## Using For loop to identify the right mtry for model
 a=c()
 #i=5
-for (i in 2:(length(var_f3)-3)) {
+for (i in 2:(length(var_f0)-3)) {
   set.seed(2)
   print(paste("mtry=",i,sep=" "))
-  rf_f3<-randomForest(train_f[,..var_f3],y=train_f[,as.factor(Final_finos_class)],ntree=1000,mtry=i,replace=T,importance=T,localImp=FALSE,do.trace=100)
-  pred_f3<-predict(rf_f3, newdata=val_f[,..var_f3],type="class")
-  a[i-1] = mean(pred_f3 == val_f$Final_finos_class)
+  rf_f0<-randomForest(train_f[,..var_f0],y=train_f[,as.factor(Final_finos_class)],ntree=1000,mtry=i,replace=T,importance=T,localImp=FALSE,do.trace=100)
+  pred_f0<-predict(rf_f0, newdata=val_f[,..var_f0],type="class")
+  a[i-1] = mean(pred_f0 == val_f$Final_finos_class)
 }
 a
-plot(2:(length(var_f3)-3),a)
-mtry_f3<-which(a==max(a))+1
+plot(2:(length(var_f0)-3),a)
+mtry_f0<-which(a==max(a))+1
 
 ##############################################################################################
 ################################################################################################
 
 ##Train and fit random forest with selected mtry
 set.seed(2)
-rf_f3<-randomForest(train_f[,..var_f3],y=train_f[,as.factor(Final_finos_class)],ntree=1000,mtry=mtry_f3,replace=T,importance=T,localImp=FALSE,do.trace=100)
+rf_f0<-randomForest(train_f[,..var_f0],y=train_f[,as.factor(Final_finos_class)],ntree=1000,mtry=mtry_f0,replace=T,importance=T,localImp=FALSE,do.trace=100)
 
 ##Validate with validation data set and confusion matrix
-val_f$pred_f3<-predict(rf_f3, newdata=val_f[,..var_f3],type="class")
-mean(val_f$pred_f3 == val_f$Final_finos_class)                    
-#cm_val_f3<-table(val_f$pred_f3,val_f$Final_finos_class)
+val_f$pred_f0<-predict(rf_f0, newdata=val_f[,..var_f0],type="class")
+mean(val_f$pred_f0 == val_f$Final_finos_class)                    
+#cm_val_f0<-table(val_f$pred_f0,val_f$Final_finos_class)
 
-confusionMatrix(as.factor(val_f$pred_f3),as.factor(val_f$Final_finos_class))
+confusionMatrix(as.factor(val_f$pred_f0),as.factor(val_f$Final_finos_class))
 
 ##Predict training data and check validation and confusion matrix
-train_f$pred_f3<-predict(rf_f3, newdata=train_f[,..var_f3],type="class")
-mean(train_f$pred_f3 == train_f$Final_finos_class)
-#cm_train_f3<-table(train_f[,pred_f3],train_f[,Final_finos_class])
+train_f$pred_f0<-predict(rf_f0, newdata=train_f[,..var_f0],type="class")
+mean(train_f$pred_f0 == train_f$Final_finos_class)
+#cm_train_f0<-table(train_f[,pred_f0],train_f[,Final_finos_class])
 
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
-importance(rf_f3)
-varImpPlot(rf_f3)
+importance(rf_f0)
+varImpPlot(rf_f0,main = "Variable importance for classification based on mud content")
 
 
 
@@ -1023,7 +1036,7 @@ beginCluster()
 pred_img_f0 <- clusterR(sat[[var_f0]], raster::predict, args = list(model = rf_f0))
 endCluster()
 beep(3)
-writeRaster(pred_img_f0,"Data_out/class_tif/pred_img_f_sel0_pol.tif",overwrite=F)
+writeRaster(pred_img_f0,"Data_out/class_tif/pred_img_f_sel0_pol.tif",overwrite=T)
 
 plot(pred_img_f0,colNA=1)
 
