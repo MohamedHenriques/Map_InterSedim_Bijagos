@@ -60,3 +60,4 @@ DEM
 img_test_RGB.tif
 m3_fg.csv
 sat_bol_calibrated
+class_prob

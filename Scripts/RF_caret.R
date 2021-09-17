@@ -1036,13 +1036,37 @@ beginCluster()
 pred_img_f0 <- clusterR(sat[[var_f0]], raster::predict, args = list(model = rf_f0))
 endCluster()
 beep(3)
-writeRaster(pred_img_f0,"Data_out/class_tif/pred_img_f_sel0_pol.tif",overwrite=T)
+writeRaster(pred_img_f0,"Data_out/class_tif/pred_img_f_sel0_pol.tif",overwrite=F)
 
 plot(pred_img_f0,colNA=1)
 
 d<-drawExtent()
 d1<-crop(pred_img_f0,d)
-plot(d1,colNA=1,col=rainbow(10))
+plot(d1,colNA=1,col=rainbow(7))
+
+
+##prediction probabilities
+beginCluster()
+pred_img_f0_prob <- clusterR(sat[[var_f0]], raster::predict, args = list(model = rf_f0,type="prob",progress="text",index=1:7))
+endCluster()
+beep(3)
+
+plot(pred_img_f0_prob[[1]], colNA=1)
+d<-drawExtent()
+d1<-crop(pred_img_f0_prob[[1]],d)
+plot(d1,colNA=1)
+
+writeRaster(pred_img_f0_prob,"Data_out/class_prob/pred_img_f0_prob.tif",overwrite=F)
+
+##Habitat extent in km2
+area_bsmix<-sum(pred_img_f0[pred_img_f0==1])*res(pred_img_f0)[1]^2*10^-6 #calculate bare sediment mixed area size in Km2
+area_bssand<-sum(pred_img_f0[pred_img_f0==2])*res(pred_img_f0)[1]^2*10^-6 #calculate bare sediment sand area size in Km2
+area_macro<-sum(pred_img_f0[pred_img_f0==3])*res(pred_img_f0)[1]^2*10^-6 #calculate macroalgae area size in Km2
+area_rock<-sum(pred_img_f0[pred_img_f0==4])*res(pred_img_f0)[1]^2*10^-6 #calculate rock area size in Km2
+area_shell<-sum(pred_img_f0[pred_img_f0==5])*res(pred_img_f0)[1]^2*10^-6 #calculate shell area size in Km2
+area_ucamix<-sum(pred_img_f0[pred_img_f0==6])*res(pred_img_f0)[1]^2*10^-6 #calculate uca sediment mixed area size in Km2
+area_ucasand<-sum(pred_img_f0[pred_img_f0==7])*res(pred_img_f0)[1]^2*10^-6 #calculate uca sediment sand area size in Km2
+
 
 
 ###Variable selection 1
