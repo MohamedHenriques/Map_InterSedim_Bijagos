@@ -461,23 +461,59 @@ plot(d1,colNA=1,col=rainbow(10))
 # m3[Final_finos_grad=="uca_sandy_010_Medium Sand",Final_finos_grad:="uca_sandy_010_Fine Sand"] ## aggregate to fine sand because we only have 2 polygons
 # #m3[Final_finos_grad=="bare_sediment_sandy_010_Medium Sand",Final_finos_grad:="bare_sediment_sandy_010_Fine Sand"] ## aggregate to fine sand because we only have 2 polygons
 
-m3[,cvr_vrA6:=as.character(cvr_vrA)][cvr_vrA6=="bare_sediment",cvr_vrA6:="sediments"][cvr_vrA6=="uca",cvr_vrA6:="sediments"]
-m3[,.(table(cvr_vrA6))]
 
-m3_h<-na.omit(m3[,c(2:26,28,34)])
+## check db
+m3[,.(table(Final_finos_class))]
 
-#m3_2<-m3[!(Final_finos_grad=="bare_sediment_NA"|Final_finos_grad=="uca_NA")]
-#m3_2[,.(table(Final_finos_grad))]
+## Remove uca and bare sediment NAs
+#m3_h0<-m3[!(Final_finos_class=="bare_sediment_NA"|Final_finos_class=="uca_NA")]
+#m3_h0[,.(table(Final_finos_class))]
+#names(m3_h0)
 
-#m3_2_1<-m3_2[,c(1:24,27,33)]
-#m3_fg<-na.omit(m3_2_1)
-#m3_fg[,.(table(Final_finos_grad))]
+##Split data for final validation
+set.seed(1)
+trainIndex<-sample.split(m3$Final_finos_class,SplitRatio=.70,group=m3$Point)
+table(m3$Final_finos_class,trainIndex)
+split(trainIndex,m3$Point)
+
+train<-m3[trainIndex]
+train[,.(table(Final_finos_class))]
+
+val<-m3[!trainIndex]
+val[,.(table(Final_finos_class))]
+
+
+###STEP 1 of hierarchical #####
+#train[,cvr_vrA6:=as.character(cvr_vrA)][cvr_vrA6=="bare_sediment",cvr_vrA6:="sediments"][cvr_vrA6=="uca",cvr_vrA6:="sediments"]
+train[,.(table(cvr_vrA6))]
+names(train)
+
+train_h<-na.omit(train[,c(2:26,34)])
+
+##### trying something different
+
+is.data(train_h)
+train_h[,radartest:=cvr_vrA6][cvr_vrA6=="macroalgae"|cvr_vrA6=="sediments",radartest:="other"]
+train_h[,table(radartest)]
+train_h[,table(cvr_vrA6)]
+
+##Split data for mid process validation
+set.seed(1)
+trainIndex_h<-sample.split(train_h$radartest,SplitRatio=.70,group=train_h$Point)
+table(train_h$radartest,trainIndex_h)
+split(trainIndex_h,train_h$Point)
+
+train_h1<-train_h[trainIndex_h]
+train_h1[,.(table(radartest))]
+
+val_h1<-train_h[!trainIndex_h]
+val_h1[,.(table(radartest))]
 
 ##Dealing with spatial independence (but will create imbalance in the number of pixels between train and validation db)
-set.seed(1)
-trainIndex_h<-sample.split(m3_h$cvr_vrA,SplitRatio=.70,group=m3_h$Point)
-table(m3_h$cvr_vrA,trainIndex_h)
-split(trainIndex_h,m3_h$Point)
+#set.seed(1)
+#trainIndex_h<-sample.split(m3_h$cvr_vrA,SplitRatio=.70,group=m3_h$Point)
+#table(m3_h$cvr_vrA,trainIndex_h)
+#split(trainIndex_h,m3_h$Point)
 
 
 # set.seed(1)
@@ -486,11 +522,11 @@ split(trainIndex_h,m3_h$Point)
 #                                      times = 1)
 # head(trainIndex_h)
 
-train_h<-m3_h[trainIndex_h]
-train_h[,.(table(cvr_vrA))]
+#train_h<-m3_h[trainIndex_h]
+#train_h[,.(table(cvr_vrA))]
 
-val_h<-m3_h[!trainIndex_h]
-val_h[,.(table(cvr_vrA))]
+#val_h<-m3_h[!trainIndex_h]
+#val_h[,.(table(cvr_vrA))]
 
 
 ##Select variables
@@ -500,6 +536,7 @@ var_l000<-names(train_h)[c(3,8,9,11:12,13,14,16,18,21,23)]
 var_l01<-names(train_h)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
 var_l02<-names(train_h)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
 var_l03<-names(train_h)[c(1:3,4,11:12,18,19,21)]
+var_l04<-names(train_h)[c(11:13)]
 
 ##############################################################################
 #################################################################################
@@ -510,9 +547,9 @@ a=c()
 for (i in 2:(length(var_l00)-3)) {
   set.seed(2)
   print(paste("mtry=",i,sep=" "))
-  rf_l00<-randomForest(train_h[,..var_l00],y=train_h[,as.factor(cvr_vrA)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
-  pred_l00<-predict(rf_l00, newdata=val_h[,..var_l00],type="class")
-  a[i-1] = mean(pred_l00 == val_h$cvr_vrA)
+  rf_l00<-randomForest(train_h1[,..var_l00],y=train_h1[,as.factor(radartest)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
+  pred_l00<-predict(rf_l00, newdata=val_h1[,..var_l00],type="class")
+  a[i-1] = mean(pred_l00 == val_h1$radartest)
 }
 a
 plot(2:(length(var_l00)-3),a)
@@ -523,19 +560,19 @@ mtry_l00<-which(a==max(a))+1
 
 ##Train and fit random forest with selected mtry
 set.seed(2)
-rf_l00<-randomForest(train_h[,..var_l00],y=train_h[,as.factor(cvr_vrA)],ntree=1000,mtry=mtry_l00,replace=T,importance=T,localImp=F,do.trace=100)
+rf_l00<-randomForest(train_h[,..var_l00],y=train_h[,as.factor(cvr_vrA6)],ntree=1000,mtry=mtry_l00,replace=T,importance=T,localImp=F,do.trace=100)
 
 ##Validate with validation data set and confusion matrix
-val_h$pred_l00<-predict(rf_l00, newdata=val_h[,..var_l00],type="class")
-mean(val_h$pred_l00 == val_h$cvr_vrA)                    
-#cm_val_l00<-table(val_h$pred_l00,val_h$cvr_vrA)
+val_h1$pred_l00<-predict(rf_l00, newdata=val_h1[,..var_l00],type="class")
+mean(val_h1$pred_l00 == val_h1$radartest)                    
+#cm_val_l00<-table(val_h1$pred_l00,val_h1$radartest)
 
-confusionMatrix(as.factor(val_h$pred_l00),as.factor(val_h$cvr_vrA))
+confusionMatrix(as.factor(val_h1$pred_l00),as.factor(val_h1$radartest))
 
 ##Predict training data and check validation and confusion matrix
-train_h$pred_l00<-predict(rf_l00, newdata=train_h[,..var_l00],type="class")
-mean(train_h$pred_l00 == train_h$cvr_vrA)
-#cm_train_l00<-table(train_h[,pred_l00],train_h[,cvr_vrA])
+train_h1$pred_l00<-predict(rf_l00, newdata=train_h1[,..var_l00],type="class")
+mean(train_h1$pred_l00 == train_h1$radartest)
+#cm_train_l00<-table(train_h[,pred_l00],train_h[,cvr_vrA6])
 
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
@@ -553,66 +590,86 @@ endCluster()
 beep(3)
 writeRaster(pred_img_l00,"Data_out/class_tif/pred_img_l0_sel00.tif",overwrite=T)
 
-plot(pred_img_l000,colNA=1)
+plot(pred_img_l00,colNA=1)
 
 d<-drawExtent()
-d1<-crop(pred_img_l000,d)
+d1<-crop(pred_img_l00,d)
 plot(d1,colNA=1,col=rainbow(4))
 
 ###Isolating macroalgae
-macro_mask<-pred_img_l000==1
+macro_mask<-pred_img_l00==1
 macro_mask[macro_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(macro_mask, colNA=1)
-writeRaster(macro_mask,"Data_out/Habitat_classes/Level0/macro_mask_rf.tif", overwrite=T)
+#writeRaster(macro_mask,"Data_out/Habitat_classes/Level0/macro_mask_rf.tif", overwrite=F)
+writeRaster(macro_mask,"Data_out/Habitat_classes/Level0/macro_mask_rf_20210921.tif", overwrite=T)
 
 ###Isolating rock
-rock_mask<-pred_img_l000==2
+rock_mask<-pred_img_l00==2
 rock_mask[rock_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(rock_mask, colNA=1)
-writeRaster(rock_mask,"Data_out/Habitat_classes/Level0/rock_mask_rf.tif", overwrite=T)
+#writeRaster(rock_mask,"Data_out/Habitat_classes/Level0/rock_mask_rf.tif", overwrite=T)
+writeRaster(rock_mask,"Data_out/Habitat_classes/Level0/rock_mask_rf_20210921.tif", overwrite=T)
 
 ###Isolating shell
-shell_mask<-pred_img_l000==4
+shell_mask<-pred_img_l00==4
 shell_mask[shell_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(shell_mask, colNA=1)
-writeRaster(shell_mask,"Data_out/Habitat_classes/Level0/shell_mask_rf.tif", overwrite=T)
+#writeRaster(shell_mask,"Data_out/Habitat_classes/Level0/shell_mask_rf.tif", overwrite=T)
+writeRaster(shell_mask,"Data_out/Habitat_classes/Level0/shell_mask_rf_20210921.tif", overwrite=T)
 
 ###Isolating exposed sediment areas
-seds_mask<-pred_img_l000==3
+seds_mask<-pred_img_l00==3
 seds_mask[seds_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(bseds_mask, colNA=1)
-writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_rf.tif", overwrite=T)
+#writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_rf.tif", overwrite=T)
+writeRaster(seds_mask,"Data_out/Habitat_classes/Level0/seds_mask_rf_20210921.tif", overwrite=T)
 
 
 ### mask sat for exposed sediment areas
 beginCluster()
 sat_seds<-mask(sat,seds_mask)
-writeRaster(sat_seds,"Data_out/Stack/sat_seds_rf.grd",format="raster",overwrite=F)
+writeRaster(sat_seds,"Data_out/Stack/sat_seds_rf_20210921.grd",format="raster",overwrite=F)
 endCluster()
 beep(3)
-sat_seds<-stack("Data_out/Stack/sat_seds_rf.grd")
+#sat_seds<-stack("Data_out/Stack/sat_seds_rf.grd")
+sat_seds<-stack("Data_out/Stack/sat_seds_rf_20210921.grd")
 names(sat_seds)
 #plot(sat_bs[[1]])
 
 
 #################################################################################################################
 ############################### Level 1 class - uca VS Bare sediments #######################################################
+train[,.(table(cvr_vrA))]
+train1<-train[cvr_vrA=="bare_sediment"|cvr_vrA=="uca"]
 
-train_h[,.(table(uca))]
-train_h2<-na.omit(train_h[,c(1:24,30)])
-train_h2[,.(table(uca))]
+train1[,.(table(cvr_vrA))]
+names(train1)
+train_hh<-na.omit(train1[,c(2:25,26,28)])
+train_hh[,.(table(cvr_vrA))]
 
-val_h[,.(table(uca))]
-val_h2<-na.omit(val_h[,c(1:24,30)])
-val_h2[,.(table(uca))]
+##Split data for mid process validation
+set.seed(1)
+trainIndex_hh<-sample.split(train_hh$cvr_vrA,SplitRatio=.70,group=train_hh$Point)
+table(train_hh$cvr_vrA,trainIndex_hh)
+split(trainIndex_hh,train_hh$Point)
+
+train_hh1<-train_hh[trainIndex_hh]
+train_hh1[,.(table(cvr_vrA))]
+
+val_hh1<-train_hh[!trainIndex_hh]
+val_hh1[,.(table(cvr_vrA))]
+
+# val_h[,.(table(uca))]
+# val_h2<-na.omit(val_h[,c(1:24,30)])
+# val_h2[,.(table(uca))]
 
 ##Select variables
-names(train_h2)
-var_l10<-names(train_h2)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)] ##PCA geral 
-var_l100<-names(train_h2)[c(1:3,7:8,9,11:12,13,14:15,18,21)] ##PCA uva vs BS
-var_l11<-names(train_h2)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
-var_l12<-names(train_h2)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
-var_l13<-names(train_h2)[c(1:3,4,11:12,18,19,21)]
+names(train_hh)
+var_l10<-names(train_hh)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)] ##PCA geral 
+var_l100<-names(train_hh)[c(1:3,7:8,9,11:12,13,14:15,18,21)] ##PCA uva vs BS
+var_l11<-names(train_hh)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
+var_l12<-names(train_hh)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
+var_l13<-names(train_hh)[c(1:3,4,11:12,18,19,21)]
 
 
 ## Using For loop to identify the right mtry for model
@@ -621,9 +678,9 @@ a=c()
 for (i in 2:(length(var_l100)-3)) {
   set.seed(2)
   print(paste("mtry=",i,sep=" "))
-  rf_l100<-randomForest(train_h2[,..var_l100],y=train_h2[,as.factor(uca)],ntree=100,mtry=i,replace=T,importance=T,localImp=F,do.trace=10)
-  pred_l100<-predict(rf_l100, newdata=val_h2[,..var_l100],type="class")
-  a[i-1] = mean(pred_l100 == val_h2$uca)
+  rf_l100<-randomForest(train_hh1[,..var_l100],y=train_hh1[,as.factor(cvr_vrA)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=10)
+  pred_l100<-predict(rf_l100, newdata=val_hh1[,..var_l100],type="class")
+  a[i-1] = mean(pred_l100 == val_hh1$cvr_vrA)
 }
 a
 plot(2:(length(var_l100)-3),a)
@@ -634,19 +691,19 @@ mtry_l100<-which(a==max(a))+1
 
 ##Train and fit random forest with selected mtry
 set.seed(2)
-rf_l100<-randomForest(train_h2[,..var_l100],y=train_h2[,as.factor(uca)],ntree=100,mtry=mtry_l100,replace=T,importance=T,localImp=F,do.trace=10)
+rf_l100<-randomForest(train_hh[,..var_l100],y=train_hh[,as.factor(cvr_vrA)],ntree=1000,mtry=mtry_l100,replace=T,importance=T,localImp=F,do.trace=10)
 
 ##Validate with validation data set and confusion matrix
-val_h2$pred_l100<-predict(rf_l100, newdata=val_h2[,..var_l100],type="class")
-mean(val_h2$pred_l100 == val_h2$uca)                    
-#cm_val_l100<-table(val_h2$pred_l100,val_h2$uca)
+val_hh1$pred_l100<-predict(rf_l100, newdata=val_hh1[,..var_l100],type="class")
+mean(val_hh1$pred_l100 == val_hh1$cvr_vrA)                    
+#cm_val_l100<-table(val_hh1$pred_l100,val_hh1$cvr_vrA)
 
-confusionMatrix(as.factor(val_h2$pred_l100),as.factor(val_h2$uca))
+confusionMatrix(as.factor(val_hh1$pred_l100),as.factor(val_hh1$cvr_vrA))
 
 ##Predict training data and check validation and confusion matrix
-train_h2$pred_l100<-predict(rf_l100, newdata=train_h2[,..var_l100],type="class")
-mean(train_h2$pred_l100 == train_h2$uca)
-#cm_train_l100<-table(train_h2[,pred_l100],train_h2[,uca])
+train_hh1$pred_l100<-predict(rf_l100, newdata=train_hh1[,..var_l100],type="class")
+mean(train_hh1$pred_l100 == train_hh1$cvr_vrA)
+#cm_train_l100<-table(train_hh1[,pred_l100],train_hh1[,cvr_vrA])
 
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
@@ -670,13 +727,15 @@ plot(d1,colNA=1,col=rainbow(2))
 bs_mask<-pred_img_l100==1
 bs_mask[bs_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(bs_mask, colNA=1)
-writeRaster(bs_mask,"Data_out/Habitat_classes/Level1/bs_mask_rf.tif", overwrite=T)
+#writeRaster(bs_mask,"Data_out/Habitat_classes/Level1/bs_mask_rf.tif", overwrite=T)
+writeRaster(bs_mask,"Data_out/Habitat_classes/Level1/bs_mask_rf_20210921.tif", overwrite=T)
 
 ###Isolating uca areas
 uca_mask<-pred_img_l100==2
 uca_mask[uca_mask==0]<-NA # turn remaining area (coded zero) into NA
 #plot(uca_mask, colNA=1)
-writeRaster(uca_mask,"Data_out/Habitat_classes/Level1/uca_mask_rf.tif", overwrite=T)
+#writeRaster(uca_mask,"Data_out/Habitat_classes/Level1/uca_mask_rf.tif", overwrite=T)
+writeRaster(uca_mask,"Data_out/Habitat_classes/Level1/uca_mask_rf_20210921.tif", overwrite=T)
 
 
 
@@ -684,97 +743,117 @@ writeRaster(uca_mask,"Data_out/Habitat_classes/Level1/uca_mask_rf.tif", overwrit
 ### mask sat for uca areas
 beginCluster()
 sat_uca<-mask(sat,uca_mask)
-writeRaster(sat_uca,"Data_out/Stack/sat_uca_rf.grd",format="raster",overwrite=F)
+#writeRaster(sat_uca,"Data_out/Stack/sat_uca_rf.grd",format="raster",overwrite=F)
+writeRaster(sat_uca,"Data_out/Stack/sat_uca_rf_20210921.grd",format="raster",overwrite=T)
 endCluster()
 beep(3)
-sat_uca<-stack("Data_out/Stack/sat_uca_rf.grd")
+#sat_uca<-stack("Data_out/Stack/sat_uca_rf.grd")
+sat_uca<-stack("Data_out/Stack/sat_uca_rf_20210921.grd")
 names(sat_uca)
 #plot(sat_uca[[1]])
 
 
-
-
-#########################################################################################
-############################## bare sediment ###########################################
-
-train_h[,.(table(Final_finos_grad))]
-train_h3_bs<-na.omit(train_h[cvr_vrA=="bare_sediment",c(1:24,33)][!Final_finos_grad=="bare_sediment_NA"])
-train_h3_bs[,.(table(Final_finos_grad))]
-
-val_h[,.(table(Final_finos_grad))]
-val_h3_bs<-na.omit(val_h[cvr_vrA=="bare_sediment",c(1:24,33)][!Final_finos_grad=="bare_sediment_NA"])
-val_h3_bs[,.(table(Final_finos_grad))]
-
-### mask sat for bare sediment areas
+### mask sat for bs areas
 beginCluster()
 sat_bs<-mask(sat,bs_mask)
-writeRaster(sat_bs,"Data_out/Stack/sat_bs_rf.grd",format="raster",overwrite=F)
+#writeRaster(sat_bs,"Data_out/Stack/sat_bs_rf.grd",format="raster",overwrite=F)
+writeRaster(sat_bs,"Data_out/Stack/sat_bs_rf_20210921.grd",format="raster",overwrite=T)
 endCluster()
 beep(3)
-sat_bs<-stack("Data_out/Stack/sat_bs_rf.grd")
+#sat_bs<-stack("Data_out/Stack/sat_bs_rf.grd")
+sat_bs<-stack("Data_out/Stack/sat_bs_rf_20210921.grd")
 names(sat_bs)
 #plot(sat_bs[[1]])
 
+plot(sat_uca[[13]])
+
+#########################################################################################
+############################## bare sediment ###########################################
+train[,.(table(cvr_vrA))]
+train1_bs<-train[cvr_vrA=="bare_sediment"]
+
+train1_bs[,.(table(cvr_vrA))]
+train1_bs[,.(table(Final_finos_class))]
+
+train1_bs1<-train1_bs[!Final_finos_class=="bare_sediment_NA"]
+train1_bs1[,.(table(Final_finos_class))]
+
+names(train1_bs1)
+train_hhh<-na.omit(train1_bs1[,c(2:25,26,32)])
+train_hhh[,.(table(Final_finos_class))]
+
+##Split data for mid process validation
+set.seed(1)
+trainIndex_hhh<-sample.split(train_hhh$Final_finos_class,SplitRatio=.70,group=train_hhh$Point)
+table(train_hhh$Final_finos_class,trainIndex_hhh)
+split(trainIndex_hhh,train_hhh$Point)
+
+train_hhh1<-train_hhh[trainIndex_hhh]
+train_hhh1[,.(table(Final_finos_class))]
+
+val_hhh1<-train_hhh[!trainIndex_hhh]
+val_hhh1[,.(table(Final_finos_class))]
+
 
 ##Select variables
-names(train_h3_bs)
-var_l20bs<-names(train_h3_bs)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)] ##PCA geral 
-var_l200bs<-names(train_h3_bs)[c(1:3,4:5,8,21,18,13,11:12,10,14:15,16)] ##PCA for bare sediemnt
-var_l21bs<-names(train_h3_bs)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
-var_l22bs<-names(train_h3_bs)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
-var_l23bs<-names(train_h3_bs)[c(1:3,4,11:12,18,19,21)]
+names(train_hhh)
+var_l20bs<-names(train_hhh)[c(1:3,4,9,13,18,11,14,15,16,19,23,24)] ##PCA geral 
+var_l200bs<-names(train_hhh)[c(1:3,4:5,8,21,18,13,11:12,10,14:15,16)] ##PCA for bare sediemnt
+var_l21bs<-names(train_hhh)[c(1:6,8,9,11:12,13,14,16,18,19,21)]
+var_l22bs<-names(train_hhh)[c(9,11:12,13,15:16,18,19,20,21,22:24)]
+var_l23bs<-names(train_hhh)[c(1:3,4,11:12,18,19,21)]
 
 
 
 ## Using For loop to identify the right mtry for model
 a=c()
 #i=5
-for (i in 2:(length(var_l21bs)-3)) {
+for (i in 2:(length(var_l200bs)-3)) {
   set.seed(2)
   print(paste("mtry=",i,sep=" "))
-  rf_l21bs<-randomForest(train_h3_bs[,..var_l21bs],y=train_h3_bs[,as.factor(Final_finos_grad)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
-  pred_l21bs<-predict(rf_l21bs, newdata=val_h3_bs[,..var_l21bs],type="class")
-  a[i-1] = mean(pred_l21bs == val_h3_bs$Final_finos_grad)
+  rf_l200bs<-randomForest(train_hhh1[,..var_l200bs],y=train_hhh1[,as.factor(Final_finos_class)],ntree=1000,mtry=i,replace=T,importance=T,localImp=F,do.trace=100)
+  pred_l200bs<-predict(rf_l200bs, newdata=val_hhh1[,..var_l200bs],type="class")
+  a[i-1] = mean(pred_l200bs == val_hhh1$Final_finos_class)
 }
 a
-plot(2:(length(var_l21bs)-3),a)
-mtry_l21bs<-which(a==max(a))+1
+plot(2:(length(var_l200bs)-3),a)
+mtry_l200bs<-which(a==max(a))+1
 
 ##############################################################################################
 ################################################################################################
 
 ##Train and fit random forest with selected mtry
 set.seed(2)
-rf_l21bs<-randomForest(train_h3_bs[,..var_l21bs],y=train_h3_bs[,as.factor(Final_finos_grad)],ntree=1000,mtry=mtry_l21bs,replace=T,importance=T,localImp=FALSE,do.trace=100)
+rf_l200bs<-randomForest(train_hhh[,..var_l200bs],y=train_hhh[,as.factor(Final_finos_class)],ntree=1000,mtry=mtry_l200bs,replace=T,importance=T,localImp=FALSE,do.trace=100)
 
 ##Validate with validation data set and confusion matrix
-val_h3_bs$pred_l21bs<-predict(rf_l21bs, newdata=val_h3_bs[,..var_l21bs],type="class")
-mean(val_h3_bs$pred_l21bs == val_h3_bs$Final_finos_grad)                    
-#cm_val_l21bs<-table(val_h3_bs$pred_l21bs,val_h3_bs$Final_finos_grad)
+val_hhh1$pred_l200bs<-predict(rf_l200bs, newdata=val_hhh1[,..var_l200bs],type="class")
+mean(val_hhh1$pred_l200bs == val_hhh1$Final_finos_class)                    
+#cm_val_l200bs<-table(val_hhh1$pred_l200bs,val_hhh1$Final_finos_class)
 
-confusionMatrix(as.factor(val_h3_bs$pred_l21bs),as.factor(val_h3_bs$Final_finos_grad))
+confusionMatrix(as.factor(val_hhh1$pred_l200bs),as.factor(val_hhh1$Final_finos_class))
 
 ##Predict training data and check validation and confusion matrix
-train_h3_bs$pred_l21bs<-predict(rf_l21bs, newdata=train_h3_bs[,..var_l21bs],type="class")
-mean(train_h3_bs$pred_l21bs == train_h3_bs$Final_finos_grad)
-#cm_train_l21bs<-table(train_h3_bs[,pred_l21bs],train_h3_bs[,Final_finos_grad])
+train_hhh1$pred_l200bs<-predict(rf_l200bs, newdata=train_hhh1[,..var_l200bs],type="class")
+mean(train_hhh1$pred_l200bs == train_hhh1$Final_finos_class)
+#cm_train_l200bs<-table(train_hhh1[,pred_l200bs],train_hhh1[,Final_finos_class])
 
 ## Importance of variables
 #### The below functions show the drop in mean accuracy for each of the variables
-importance(rf_l21bs)
-varImpPlot(rf_l21bs)
+importance(rf_l200bs)
+varImpPlot(rf_l200bs)
 
 
 ###Variable selection PCA bs
 beginCluster()
-pred_img_l21bs <- clusterR(sat_bs[[var_l21bs]], raster::predict, args = list(model = rf_l21bs))
+pred_img_l200bs <- clusterR(sat_bs[[var_l200bs]], raster::predict, args = list(model = rf_l200bs))
 endCluster()
 beep(3)
-writeRaster(pred_img_l21bs,"Data_out/class_tif/pred_img_l2bs_sel1.tif",overwrite=T)
+writeRaster(pred_img_l200bs,"Data_out/class_tif/pred_img_l200bs_sel1.tif",overwrite=T)
 
-plot(pred_img_l21bs,colNA=1)
+plot(pred_img_l200bs,colNA=1)
 d<-drawExtent()
-d1<-crop(pred_img_l21bs,d)
+d1<-crop(pred_img_l200bs,d)
 plot(d1,colNA=1,col=rainbow(4))
 
 
